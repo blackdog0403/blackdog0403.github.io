@@ -19,4 +19,4 @@ categories: jekyll update
 
 
 
-![My helpful screenshot]({{ site.url }}/_images/20170427_day1/IMG_0958.JPG)
+![TEST]({{ site.url }}/assets/20170427_day1/IMG_0960.JPG)
