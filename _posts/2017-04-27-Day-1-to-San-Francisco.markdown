@@ -2,21 +2,9 @@
 layout: post
 title:  "Day 1 - Very first meetup in  San Francisco"
 date:   2017-04-27 23:14:12 -0700
-categories: jekyll update
+categories: life in San Francisco
 ---
-## 인사말
-
-안녕하세요? 삼성SDS Devops Lab 의 김광영 프로입니다. Global Exchange Program을 통해서 3월달에 먼저 San Jose로 떠난 오경연 프로에 이어서 Seattle로 파견을 왔습니다. 저는  Seattle 에 자리 잡은 CNCT (Cloud Native Computing Team)와 함께 [K2 (Kraken2)](https://github.com/samsung-cnct/k2) 라는 오픈소스 프로젝트의 개발에 참여할 계획입니다.
-
-## 멀고도 험한 미국에 입국하기
-
-네 그렇습니다. 모두가 알겠지만 도널드 트럼프 대통령 덕에 ESTA 비자를 발급을 받았음에도 불구하고 매우 타이트하게 심사합니다. ESTA 비자는 정해진 국가의 시민들이 비자 없이  여행, 출장, 컨퍼런스, 교육 등 일반적인 목적으로 90일 또는 그 이하의 기간 동안 미국에 체류할 수 있도록 하는 비자 면제 프로그램하에 여행자의 입국 가능성을 결정(???? 자기들 맘이라는 이야기 입니다-_-;;)  하는 제도 입니다.
-
- 혹시나 비지니스 때문에, 일 때문에, 혹은 프로젝트를 하러 왔다고 말하는 순간 입국조차 못하고 쫓겨날 수 도 있습니다.
-
-덕분에 입국심사 사무소에서만 무려 2시간 40분을(!!) 기다리는 참사를 겪었지만 다행히도 90일 짜리 체류기간 도장을 받아서 다행이었지요. 같이 동행한 최민규 프로는 신혼여행을 하와이로 갔다온 덕에 시민권자들과 함께 키오스크를 이용하는 간단한 신고를 거쳐서 입국심사를 퀵패스(?)로 쉽게 통과했습니다. (네, 괌, 사이판, 하와이 같은 미주에 입국하신 경험이 있다면 좀 더 편리한(?) 미국입국이 가능합니다. )
-
-
+## Underconstructions
 
 
 ![TEST]({{ site.url }}/assets/20170427_day1/IMG_0960.JPG)
