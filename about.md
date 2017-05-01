@@ -4,4 +4,4 @@ title: About
 permalink: /about/
 ---
 
- [김광영의 링크드인](www.linkedin.com/in/blackdog0403)
+[김광영의 링크드인](https://www.linkedin.com/in/blackdog0403)
