@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Day 3 n San Francisco"
+title:  "Settle down to Seattle"
 date:   2017-04-29 19:35:00 -0700
 categories: life in Seattle
 ---
