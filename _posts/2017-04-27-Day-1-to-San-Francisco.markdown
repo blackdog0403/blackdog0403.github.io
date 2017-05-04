@@ -2,7 +2,7 @@
 layout: post
 title:  "Day 1 in  San Francisco"
 date:   2017-05-01 01:21:12 -0700
-categories: jekyll update
+categories: GEP
 ---
 ## Hello, world
 
