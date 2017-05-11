@@ -7,7 +7,6 @@ categories: life in Seattle
 
 ## 드디어 시애틀
 
-
 ## 일정 잡느라 개고생
 
 ## 아파트 시설은 충분히 좋구나
