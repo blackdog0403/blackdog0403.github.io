@@ -115,12 +115,9 @@ $  sudo docker ps -aq
 ```bash
 CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS
              PORTS               NAMES
-f63e3ae026e1        nginx:1.10.0        "nginx -g 'daemon off"   About an hour ago   Up Abou
-t an hour    80/tcp, 443/tcp     suspicious_euler
-e90a251fcf28        nginx:1.9.3         "nginx -g 'daemon off"   About an hour ago   Up Abou
-t an hour    80/tcp, 443/tcp     cranky_noyce
-92fdc2bb9b61        nginx:1.10.0        "nginx -g 'daemon off"   About an hour ago   Up Abou
-t an hour    80/tcp, 443/tcp     drunk_shockley
+f63e3ae026e1        nginx:1.10.0        "nginx -g 'daemon off"   About an hour ago   Up About an hour    80/tcp, 443/tcp     suspicious_euler
+e90a251fcf28         nginx:1.9.3          "nginx -g 'daemon off"   About an hour ago   Up About an hour    80/tcp, 443/tcp     cranky_noyce
+92fdc2bb9b61        nginx:1.10.0        "nginx -g 'daemon off"   About an hour ago   Up About an hour    80/tcp, 443/tcp     drunk_shockley
 ```
 
 다음과 같이 컨테이너를 인스펙션 할 수 있다.
@@ -145,6 +142,7 @@ $ sudo docker inspect -f '{{.Name}} - {{.NetworkSettings.IPAddress }}' $(sudo do
 ```
 
 ### 인스턴스 중단하기
+
 ```bash
 $ sudo docker stop <cid> or <컨테이너명>
 ```
@@ -164,7 +162,7 @@ $ sudo docker ps
 ```bash
 $ sudo docker rm <cid> or <컨테이너명>
 ```
-또는 다음과 같이 모든 컨테이너를 중지 시킬 수 있다.
+또는 다음과 같이 모든 컨테이너를 삭제할 수 있다. 헷갈리지 말아야하는 것은 컨테이너를 삭제하는 것이지 이미지를 삭제하는것이 아니라는 점이다.
 
 ```bash
 $ sudo docker rm $(sudo docker ps -aq)
@@ -292,60 +290,4 @@ $ sudo docker tag auth:1.0.0 blackdog0403/example-auth:1.0.0
 $ sudo docker tag hello:1.0.0 blackdog0403/example-hello:1.0.0
 $ sudo docker push blackdog0403/example-auth:1.0.0
 $ sudo docker push blackdog0403/example-hello:1.0.0
-```
-
-
-
-###K8s basic command
-
-```
-kubectl run nginx --image=nginx:1.10.0 # run a container as pods
-
-kubectl get pods #check which pods are running
-
-kubectl expose deployment nginx --port 80 --type LoadBalancer
-```
-
-### Creating pods
-
-```
-creating a pods
-```
-kubectl create -f pods/monolith.yaml
-kubectl get pods
-```
-
-monolith.yaml
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: monolith
-  labels:
-    app: monolith
-spec:
-  containers:
-    - name: monolith
-      image: udacity/example-monolith:1.0.0
-      args:
-        - "-http=0.0.0.0:80"
-        - "-health=0.0.0.0:81"
-        - "-secret=secret"
-      ports:
-        - name: http
-          containerPort: 80
-        - name: health
-          containerPort: 81
-      resources:
-        limits:
-          cpu: 0.2
-          memory: "10Mi"
-```
-
-### Interacting with pods
-
-set up port forwarding
-
-```
-kubectl port-forward monolith 10080:80
 ```
