@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Travel around Seattle - vol.1"
-date:   2017-05-28 14:35:00 -0700
+date:   2017-07-07 14:35:00 -0700
 categories: GEP
 ---
 

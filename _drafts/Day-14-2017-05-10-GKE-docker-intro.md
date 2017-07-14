@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Day14-Retrospective-GCE-K8S"
+title:  "Day14-Retrospective-GCE-K8S-Docker intro"
 date:   2017-04-29 19:35:00 -0700
 categories: K8S
 ---
