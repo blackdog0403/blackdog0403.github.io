@@ -54,7 +54,7 @@ categories: GEP
 
 소프트웨어 기술 측면에서 미국을 바라본다면 시애틀이 이제는 클라우드의 최중심에 있는 도시가 되었다. AWS 로 유명한 아마존 본사, Azure의 마이크로소프트, Google Cloud Platform의 구글도 2019년 완공을 목표로 사무실을 만들고 있는 중이다.
 
-![cloudburst]({{ site.url }}/assets/20170707_travel_1/20160909_Vulcan_Block.JPG)
+![cloudburst]({{ site.url }}/assets/20170707_travel_1/20160909_Vulcan_Block.jpg)
 
 시애틀에 새롭게 만들어지고 있는 구글 오피스 - 클라우드 관련 부서들이 입주할 예정이라고 한다.
 
