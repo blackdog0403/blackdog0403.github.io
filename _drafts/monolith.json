@@ -1,0 +1,9 @@
+{
+   "auths": {
+   "paas.redii.net": {
+   "auth": "bXkyMi5sZWU6cm9xa2YxMiM="
+    },
+   "sds.redii.net": {
+   "auth": "aGFyYW5nLmxlZTphbHNiZHB0MyM="
+   }
+ }
