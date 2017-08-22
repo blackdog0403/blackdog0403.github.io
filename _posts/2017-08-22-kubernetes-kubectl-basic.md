@@ -8,53 +8,53 @@ categories:  kubernetes
 # Kubernetes kubectl Deployment object usage
 
 ### login & logout
-```yaml
+```bash
 $ docker login <URL> # eg) docker login sds.redii.net
 $ docker logout sds.redii.net
 ```
 
 ### create
-```yaml
+```bash
 $ kubectl create -f nginx-deployment.yaml --record
 ```
 Setting the kubectl flag --record to true allows you to record current command in the annotations of the resources being created or updated. It is useful for future introspection: for example, to see the commands executed in each Deployment revision.
 
 ### get
-```yaml
+```bash
 $ kubectl get deployments
 ```
 
 ### get rollout history
-```yaml
+```bash
 $ kubectl rollout history deployment/nginx-deployment
 ```
 
 ### delete
-```yaml
+```bash
 $ kubectl delete deployment nginx-deployment
 ```
 
 
 ### Run command on a pod
-```yaml
+```bash
 $ kubectl exec <POD-NAME> cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
 ### expose pod to external
-```yaml
+```bash
 $ kubectl expose deployment jenkins-deployment --port 8080 --type NodePort
 ```
 
 ### create service
-```yaml
+```bash
 $ kubectl create -f service.xml
 ```
 
 ### describe service
-```yaml
+```bash
 $ kubectl describe service jenkins
 ```
 ### delete service
-```yaml
+```bash
 $ kubectl delete service jenkins
 ```
