@@ -39,7 +39,10 @@ $ kubectl delete deployment nginx-deployment
 ```bash
 $ kubectl exec <POD-NAME> cat /var/jenkins_home/secrets/initialAdminPassword
 ```
-
+### get pod ip
+```bash
+$ kubectl get pods -o jenkins-deployment-1818597696-2bhtg -o yaml | grep podIP
+```
 ### expose pod to external
 ```bash
 $ kubectl expose deployment jenkins-deployment --port 8080 --type NodePort
@@ -57,4 +60,9 @@ $ kubectl describe service jenkins
 ### delete service
 ```bash
 $ kubectl delete service jenkins
+```
+
+### get service info
+```bash
+$ kubectl get svc jenkins-deployment -o yaml | grep nodePort -C 5
 ```
