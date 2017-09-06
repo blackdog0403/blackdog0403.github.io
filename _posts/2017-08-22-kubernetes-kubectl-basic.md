@@ -7,12 +7,6 @@ categories:  kubernetes
 
 # Kubernetes kubectl Deployment object usage
 
-### login & logout
-```bash
-$ docker login <URL> # eg) docker login sds.redii.net
-$ docker logout sds.redii.net
-```
-
 ### create
 ```bash
 $ kubectl create -f nginx-deployment.yaml --record
@@ -34,7 +28,10 @@ $ kubectl rollout history deployment/nginx-deployment
 $ kubectl delete deployment nginx-deployment
 ```
 
-
+### Watching pods
+```bash
+$ kubectl get pods -owide --watch
+```
 ### Run command on a pod
 ```bash
 $ kubectl exec <POD-NAME> cat /var/jenkins_home/secrets/initialAdminPassword
