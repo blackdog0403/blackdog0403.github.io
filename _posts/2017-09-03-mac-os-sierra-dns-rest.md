@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Mac os sierra dns reset"
-date:   2017-08-24 08:47:00 -0700
+date:   2017-09-03 08:47:00 -0700
 categories:  linux
 ---
 

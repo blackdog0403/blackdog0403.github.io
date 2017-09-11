@@ -2,7 +2,7 @@
 layout: "post"
 title: "How to install docker-ce on ubuntu Xenial(16.04)"
 date: "2017-09-07 23:02"
-categories:  linux
+categories:  docker
 ---
 
 # How to install docker-ce on ubuntu Xenial(16.04) on x86_64
