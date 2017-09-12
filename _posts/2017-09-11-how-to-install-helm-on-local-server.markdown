@@ -2,6 +2,7 @@
 layout: "post"
 title: "How to install helm on local server"
 date: "2017-09-11 18:32"
+categories:  kubernetes
 ---
 
 # How to install helm on local server
