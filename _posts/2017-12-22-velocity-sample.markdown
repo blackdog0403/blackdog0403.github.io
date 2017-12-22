@@ -2,7 +2,7 @@
 layout: "post"
 title: "Velocity Sample"
 date: "2017-12-22 09:57"
-categories:  javs
+categories:  java
 ---
 
 # Velocity sample source
