@@ -7,5 +7,5 @@ categories:  kubernetes
 
 # Create from files
 ```bash
-kubectl create configmap helm-config-data --from-file=/home/sdssvc/.helm/repository/repositories.yaml -n sdspaas-cicd
+kubectl create configmap helm-config-data --from-file=/root/.helm/repository/repositories.yaml -n usernamespace
 ```
