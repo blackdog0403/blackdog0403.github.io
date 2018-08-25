@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "CA certificate on linux"
 date:   2017-08-23 09:53:00 -0700
 categories:  kubernetes
+classes: wide
 ---
 
 # CA certificate on linux

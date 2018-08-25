@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "Docker Basics"
 date:   2017-07-11 19:35:00 -0700
 categories:  docker
+classes: wide
 ---
 
 # Docker image repository usage

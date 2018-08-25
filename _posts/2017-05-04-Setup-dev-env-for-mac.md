@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "맥용 개발 환경 셋업하기 - iTerm2 + zsh + oh-my-zsh"
 date:   2017-05-04 10:51:00 -0700
 categories: mac
+classes: wide
 ---
 
 ## 맥용 개발 환경 셋업하기 - iTerm2 + zsh + oh-my-zsh

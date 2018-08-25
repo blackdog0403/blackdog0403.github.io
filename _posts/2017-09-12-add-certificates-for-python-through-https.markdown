@@ -1,8 +1,9 @@
 ---
-layout: "post"
+layout: "posts"
 title: "Add certificates for python through https"
 date: "2017-09-12 10:25"
-categories:  linux
+categories:  python, linux
+classes: wide
 ---
 
 # Add certificates for python through https

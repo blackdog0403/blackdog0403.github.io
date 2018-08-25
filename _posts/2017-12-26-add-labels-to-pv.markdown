@@ -1,8 +1,9 @@
 ---
-layout: "post"
+layout: "posts"
 title: "Add labels to PV"
 date: "2017-12-26 18:56"
 categories:  kubernetes
+classes: wide
 ---
 
 #Add labels to PV

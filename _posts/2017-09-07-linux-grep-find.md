@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "Mac os sierra dns reset"
 date:   2017-09-03 08:47:00 -0700
 categories:  linux
+classes: wide
 ---
 
 # file, diff, grep, find

@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "Kubernetes Kubectl Basics"
 date:   2017-08-21 19:35:00 -0700
 categories:  kubernetes
+classes: wide
 ---
 
 # Kubernetes kubectl Deployment object usage

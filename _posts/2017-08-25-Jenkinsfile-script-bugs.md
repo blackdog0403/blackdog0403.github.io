@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "Jenkinsfile script bugs?"
 date:   2017-08-24 08:47:00 -0700
 categories:  linux
+classes: wide
 ---
 
 # Jenkinsfile script bugs?

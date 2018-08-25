@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "Docker Proxy Setup"
 date:   2017-08-21 19:35:00 -0700
 categories:  docker
+classes: wide
 ---
 
 # Docker Proxy Setup

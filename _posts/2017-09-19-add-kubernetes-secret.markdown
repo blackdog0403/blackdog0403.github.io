@@ -1,7 +1,9 @@
 ---
-layout: "post"
+layout: "posts"
 title: "Add Kubernetes secret"
 date: "2017-09-19 08:51"
+categories:  kubernetes
+classes: wide
 ---
 
 

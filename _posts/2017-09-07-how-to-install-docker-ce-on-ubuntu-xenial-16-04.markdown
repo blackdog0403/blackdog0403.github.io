@@ -1,8 +1,9 @@
 ---
-layout: "post"
+layout: "posts"
 title: "How to install docker-ce on ubuntu Xenial(16.04)"
 date: "2017-09-07 23:02"
-categories:  docker
+categories:  docker, kubernetes
+classes: wide
 ---
 
 # How to install docker-ce on ubuntu Xenial(16.04) on x86_64
