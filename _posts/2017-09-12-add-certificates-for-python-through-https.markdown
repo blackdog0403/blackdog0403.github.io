@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "Add certificates for python through https"
 date: "2017-09-12 10:25"
 categories:  python, linux

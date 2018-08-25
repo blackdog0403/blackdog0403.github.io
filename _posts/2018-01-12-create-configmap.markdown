@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "Create Configmap"
 date: "2018-01-12 10:39"
 categories:  kubernetes

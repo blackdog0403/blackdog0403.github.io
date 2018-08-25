@@ -1,9 +1,9 @@
 ---
-layout: "posts"
+layout: "single"
 title: "How to install helm on local server"
 date: "2017-09-11 18:32"
-categories:  kubernetes
-classes:  wide
+categories: kubernetes
+classes: wide
 ---
 
 # How to install helm on local server

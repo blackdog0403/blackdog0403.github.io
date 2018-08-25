@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "Timezone for pod"
 date: "2017-11-03 11:14"
 classes: wide

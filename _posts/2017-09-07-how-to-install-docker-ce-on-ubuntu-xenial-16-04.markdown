@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "How to install docker-ce on ubuntu Xenial(16.04)"
 date: "2017-09-07 23:02"
 categories:  docker, kubernetes

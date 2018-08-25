@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "Retrofit2 Samples"
 date: "2017-12-22 10:21"
 categories:  java

@@ -1,10 +1,11 @@
 ---
-layout: "posts"
+layout: "single"
 title: "Apache2-utils usage for performance test"
 date: "2018-04-29 10:31"
 categories:  linux
 classes: wide
 ---
+
 ## Introducing apache bench
 
 

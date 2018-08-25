@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "How to add user"
 date: "2017-09-08 09:18"
 categories: linux

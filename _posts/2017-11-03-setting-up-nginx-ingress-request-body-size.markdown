@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "Setting up nginx ingress request body size"
 date: "2017-11-03 11:16"
 categories:  java

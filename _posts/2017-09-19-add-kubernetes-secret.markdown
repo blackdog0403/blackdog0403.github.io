@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "Add Kubernetes secret"
 date: "2017-09-19 08:51"
 categories:  kubernetes

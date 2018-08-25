@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "Add labels to PV"
 date: "2017-12-26 18:56"
 categories:  kubernetes

@@ -1,5 +1,5 @@
 ---
-layout: "posts"
+layout: "single"
 title: "Spring – Inject value into static variables
 "
 date: "2018-01-12 10:31"
