@@ -1,7 +1,9 @@
 ---
-layout: "post"
+layout: "posts"
 title: "Setting up nginx ingress request body size"
 date: "2017-11-03 11:16"
+categories:  java
+classes: wide
 ---
 
 

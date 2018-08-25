@@ -1,9 +1,10 @@
 ---
-layout: "post"
+layout: "posts"
 title: "Spring – Inject value into static variables
 "
 date: "2018-01-12 10:31"
 categories:  java
+classes: wide
 ---
 
 Spring doesn’t allow to inject value into static variables, for example:

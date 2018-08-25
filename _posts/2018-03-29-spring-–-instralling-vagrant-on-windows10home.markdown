@@ -1,17 +1,18 @@
 ---
-layout: "post"
+layout: "posts"
 title: "Apache2-utils usage for performance test"
 date: "2018-04-29 10:31"
 categories:  linux
+classes: wide
 ---
-# Introducing apache bench
+## Introducing apache bench
 
 
-## install
+### install
 
 sudo apt-get install apache2-utils
 
-## instruction
+### instruction
 ```
 Usage: ab [options] [http[s]://]hostname[:port]/path
 Options are:
@@ -61,12 +62,12 @@ Options are:
 
 
 
-## example
+### example
 ```bash
 ab -n 400 -c 1 http://13.125.237.30/  
 ```
 
-## result
+### result
 ```
 This is ApacheBench, Version 2.3 <$Revision: 1706008 $>
 Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/

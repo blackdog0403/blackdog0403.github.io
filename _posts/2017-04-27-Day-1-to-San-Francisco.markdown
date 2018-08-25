@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "Day 1 in  San Francisco"
 date:   2017-05-01 01:21:12 -0700
 categories: GEP
+classes: wide
 ---
 ## Hello, world
 
@@ -14,7 +15,7 @@ categories: GEP
 
  혹시나 비지니스 때문에, 일 때문에, 혹은 프로젝트를 하러 왔다고 말하는 순간 입국조차 못하고 쫓겨날 수 도 있습니다.
 
-![waitinginimmigrationcenter]({{ site.url }}/assets/20170427_day1/IMG_0958.JPG)
+![waitinginimmigrationcenter]({{ site.url }}/assets/images/20170427_day1/IMG_0958.JPG)
 
 덕분에 입국심사 사무소에서만 무려 `2시간 40분을(!!)` 기다리는 참사를 겪었지만 다행히도 90일 짜리 체류기간 도장을 받아서 다행이었지요. 같이 동행한 최민규 프로는 신혼여행을 하와이로 갔다온 덕에 시민권자들과 함께 키오스크를 이용하는 간단한 신고를 거쳐서 입국심사를 퀵패스(?)로 쉽게 통과했습니다. (네, 괌, 사이판, 하와이 같은 미주에 입국하신 경험이 있다면 좀 더 편리한(?) 미국입국이 가능합니다. )
 
@@ -22,17 +23,17 @@ categories: GEP
 
 우버 택시를 타고 ( 나중에 우버나 리프트(lyft) 같은  rideshare service 에 대한 포스팅을 따로 하도록 하겠습니다.) 호텔로 이동하여 짐을 풀고 잠깐 휴식을 취한 뒤에 바로 미트업이 있는 센프란시스코 다운타운쪽으로 이동했습니다.  
 
-![onwaytosanfrancisco]({{ site.url }}/assets/20170427_day1/IMG_0960.JPG)
+![onwaytosanfrancisco]({{ site.url }}/assets/images/20170427_day1/IMG_0960.JPG)
 그냥 대충 아무데나 찍어도 하늘이 파랗습니다. 공항에 내리자마자 느낀건 꺠끗한 공기(미세먼지 떄문에 괴롭ㅜㅜ)
 
 ### Meetup 에서의 네트워킹
 
 제가 참여한 meetup은 [Kubernetes Security with Falco and PaaS at Bloomberg](https://www.meetup.com/ko-KR/San-Francisco-Kubernetes-Meetup/events/238679093/) 라는 Kubernetes (이하 K8S) 에서의 보안과 Bloomberg에서의 Paas on K8S에 대한 공유를 하는 자리였습니다.  일반적으로 밋업은 평일 저녁에 많이 이루여 집니다. 일과 생활의 균형을 중요시하는 실리콘 밸리의 문화 때문인 것 같아보였습니다. 주로 저녁에 밋업을 하다 보니 주최를 하는 쪽에서는 일반적으로  샌드위치나 타코, 피자 같은 음식을 준비를 해서 참여자들에게 무료로 제공하기도 합니다. 이걸 깜박하고 밋업을 하는 건물 근처의 chipotle에서 부리또를 하나 다 먹고 들어갔는데 이게 왠걸...Bloomberg 가 장소를 지원하는 밋업인걸 깜박했었네요.
 
-![bloomberg'skitchen]({{ site.url }}/assets/20170427_day1/IMG_0962.JPG)
+![bloomberg'skitchen]({{ site.url }}/assets/images/20170427_day1/IMG_0962.JPG)
 테이블 위에 피자가 가득. 저기 왼쪽위에서는 요즘 핫한 블루보틀 커피도 있음.
 
-![bloomberg'skitchen]({{ site.url }}/assets/20170427_day1/IMG_0963.JPG)
+![bloomberg'skitchen]({{ site.url }}/assets/images/20170427_day1/IMG_0963.JPG)
 저녁에 하는 행사니 아예 바를 차림. 와인, 맥주, 칵테일 등등.
 
 `50명 정도가 모이는 이 작은 meetup에 Bloomberg는 행사를 주최하는 Host 가 아님에도 전폭적으로 지원을 하고 있었습니다.` 장소부터 장비, 케이터링, 스텝지원등 어디 하나 나무랄 때가 없을 정도로 행사를 지원을 해주었습니다. 이런 밋업을 단순한 기술 공유 차원에서의 행사가 아닌 중요한 활동으로 여기고 있다고 느껴졌습니다.
@@ -47,7 +48,7 @@ categories: GEP
 
  PAAS에 대해서 설명하기전에 IAAS와  PAAS 그리고 SAAS에 대한 간단한 개념정리부터 하고 설명을 시작합니다.( 혼자서만 카메라 소리가 나는 아이폰이라 사진을 많이 못찍어온게 조금 아쉽습니다.)
 
- ![passonk8s]({{ site.url }}/assets/20170427_day1/IMG_0965.JPG)
+ ![passonk8s]({{ site.url }}/assets/images/20170427_day1/IMG_0965.JPG)
 
  간단하게 정리하자면 내용은 기본적인 컨셉은 K8S CLI 위에 자신들의 CLI를 덧씌워 간단 명령어 몇줄로 기본적인 프로젝트 탬플릿과 빌드 환경, DB나 WAS 등의 미들웨어 컨테이너를  자동으로 구성되도록 하여 개발자들이 손쉽게 K8S 클러스터 위에 개발환경을 구축하고 배포를 할 수 있도록 하는 것이었습니다. Redhat의 [openshift](https://www.openshift.com) 와 맥락이 비슷한데 UI가 없고 Bloomberg 자체적으로 구축한 PAAS라고 생각하시면 이해가 쉬울 것 같습니다.
 
@@ -56,7 +57,7 @@ categories: GEP
 
 다음은 오픈소스 모니터링으로 알려져 있는 [sysdig](http://www.sysdig.org) 의 [Falco](http://www.sysdig.org/falco/) 입니다. 리눅스 커널에 모듈을 심어 보안에 관련된 특정한 룰을 지정해놓고 그룰에 위반하는 컨테이너에 대한 모든 행위를 감지하여 모니터링하고 알려주는 툴입니다.
 
-![falco]({{ site.url }}/assets/20170427_day1/IMG_0969.JPG)
+![falco]({{ site.url }}/assets/images/20170427_day1/IMG_0969.JPG)
 
 컨테이너가 VM에 비해서 보안이 취약한 점 때문에 운영 환경에서 사용하지 못하는 경우도 있는데 이런 툴들이 계속 발전함으로써 좀 더 많은 회사들이 운영 환경을 컨테이너 기반의 환경으로 변경해나갈 것으로 보입니다.
 
@@ -67,10 +68,10 @@ categories: GEP
 다음편에서는 산호세 방문기와 샌프란시스코 시내 탐방기를 써보겠습니다. 그럼 안녕히계세요.
 
 
-![usingjekyll]({{ site.url }}/assets/20170427_day1/IMG_0972.JPG)
+![usingjekyll]({{ site.url }}/assets/images/20170427_day1/IMG_0972.JPG)
 
 jekyll 로 github 페이지를 생성하느라 첫날밤부터 늦게 자는중.
 
-![id]({{ site.url }}/assets/20170427_day1/IMG_0970.JPG)
+![id]({{ site.url }}/assets/images/20170427_day1/IMG_0970.JPG)
 
 밋업 ID 인증샷.

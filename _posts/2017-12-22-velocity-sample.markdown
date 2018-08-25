@@ -1,8 +1,9 @@
 ---
-layout: "post"
+layout: "posts"
 title: "Velocity Sample"
 date: "2017-12-22 09:57"
 categories:  java
+classes: wide
 ---
 
 # Velocity sample source

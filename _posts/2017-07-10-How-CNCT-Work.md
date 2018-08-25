@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "Samsung-cnct's How we work"
 date:   2017-07-11 19:35:00 -0700
 categories:  Agile development
+classes: wide
 ---
 
 # Samsung-cnct's How we work
@@ -49,7 +50,7 @@ Common-tool 팀은 저같은 익스체인지 엔지니어나 인턴부터 client
 
 - Sprint Planning (every other week) - 1hour  - Sprint Planning은 Backlog Grooming을 포함하여 진행되며 이번 스프린트에 할 일들을   To-do lane으로 다 옮깁니다. 2주안에 할 수 있을 정도의 티켓만  파이프라인에 올리고 나머지는 Backlog에서 추가적으로 골라서 작업을 하거나 중간에 이슈가 생기면 해당하는 이슈에 대한 작업을 하기도 합니다.
 
-![kanban]({{ site.url }}/assets/20170710/kanban.png)
+![kanban]({{ site.url }}/assets/images/20170710/kanban.png)
 
 Github의 프로젝트 보드.  jira와 크게 다르지 않습니다.
 
@@ -67,7 +68,7 @@ Sprint Planning은 2주 단위로 진행하고 Sprint Planning이 없는 주에 
 
 아래와 같이 다양한 레이블을 통해서 티켓들을 관리합니다.
 
-![labels]({{ site.url }}/assets/20170710/labels.png)
+![labels]({{ site.url }}/assets/images/20170710/labels.png)
 
 ### Common Tool's  Work Flow
 
@@ -159,16 +160,16 @@ $  git rebase upstream/master
 [https://github.com/samsung-cnct/k2/pull/557](https://github.com/samsung-cnct/k2/pull/557)
 
 
-![review1]({{ site.url }}/assets/20170710/review1.png)
+![review1]({{ site.url }}/assets/images/20170710/review1.png)
 
 
 클러스터를 올릴 때 파일 2개를 가지고 상태를 체크하는 것은 부적절하다로 리뷰가 시작 됐지만 나중에는 K2 일부 코드에 CoreOS의 버전이 Latest 로 되어 있어서 idempotent(멱등성을 가진) 하지 못하고 또다시 명령어를 실행했을 떄 etcd클러스터를 날려버릴 수 있다고 하는 이야기까지 이야기 진행되서 티켓으로 부터 주제를 분리하기 이르렀습니다^^; 결국 코멘트만 30개가 넘게 달렸네요^^;; 핫한 PR 중 하나긴 했지만 이렇게까지 길게 리뷰가 가는 경우도 있습니다. 기본적으로 리뷰어는 그냥 코멘트만 남기거나 변경을 요청하거나 승인을 할 수 있습니다. 승인이 이루진다고 해도 CI를 통과해야지 머지가 가능합니다. 물론 머지는 다른 사람이 할 수 있습니다. (그냥 스스로 머지를 하면 다른 팀원들이 확인하고 리버트를 시키기도 합니다.)
 
-![review2]({{ site.url }}/assets/20170710/review2.png)
+![review2]({{ site.url }}/assets/images/20170710/review2.png)
 
 변경을 요청한다음 PR을 요청한 사람이 변경 요청 부분의 소스를 수정하면 Github이 자동으로 해당부분의 소스가 더 이상 유효라지 않다고 표기를 해줘서 순쉽게 변경사항을 확인이 가능합니다. 리뷰어는 변경사항에 대하서 아래와 승인을 할 수 있습니다.
 
-![review3]({{ site.url }}/assets/20170710/review3.png)
+![review3]({{ site.url }}/assets/images/20170710/review3.png)
 
 ##  Conclusion
 

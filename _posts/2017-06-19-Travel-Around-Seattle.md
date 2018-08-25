@@ -1,8 +1,9 @@
 ---
-layout: post
+layout: posts
 title:  "Travel around Seattle - vol.1"
 date:   2017-07-07 14:35:00 -0700
 categories: GEP
+classes: wide
 ---
 
 # Travel around Seattle - vol.1
@@ -27,9 +28,9 @@ categories: GEP
 - [seattle-coffee-guide-locally-roasted-beans](http://www.seattlemag.com/article/seattle-coffee-guide-locally-roasted-beans)
 
 
-![Starbucks]({{ site.url }}/assets/20170707_travel_1/IMG_1027.JPG)
+![Starbucks]({{ site.url }}/assets/images/20170707_travel_1/IMG_1027.JPG)
 
-![Starbucks]({{ site.url }}/assets/20170707_travel_1/IMG_1029.JPG)
+![Starbucks]({{ site.url }}/assets/images/20170707_travel_1/IMG_1029.JPG)
 
 한번은 가야할 것 같아서 들려봤던 전설적인(?) 스타벅스 1호점. 외국인 뿐만 아니라 미국 관광객들도 다 들려서 머그컵 같은 상품과 음료를 사서 감. 그린티 프라푸치노 먹는 애들이 꽤 있더라. 시애틀에 의외로 한국인들이 안 보이는데 여기서는 많이 볼 수 있다. 한국이 그립다면 스타벅스 1호점으로!
 
@@ -40,13 +41,13 @@ categories: GEP
 - [An Essential Guide to Seattle's Top Breweries](https://seattle.eater.com/maps/best-seattle-breweries)
 - [THE 15 WASHINGTON BEERS TO DRINK BEFORE YOU DIE](https://www.thrillist.com/drink/seattle/washington-s-15-best-beers-seattle-beer-bucket-list)
 
-![cloudburst]({{ site.url }}/assets/20170707_travel_1/IMG_1221.JPG)
+![cloudburst]({{ site.url }}/assets/images/20170707_travel_1/IMG_1221.JPG)
 
-![cloudburst]({{ site.url }}/assets/20170707_travel_1/IMG_1223.JPG)
+![cloudburst]({{ site.url }}/assets/images/20170707_travel_1/IMG_1223.JPG)
 
 주말에 들려봤던 클라우드 버스트 브루어리. IPA 맥주는 보통 도수가 8~9도 되는데 멋 모르고 한 두잔 마시면 사실 소주 한병 마신거랑 같은 양이 되어버린다. 여기서는 안주를 안 먹으니 빈속에 소주 한병 마신거라고 생각하면된다. 취한다...
 
-![cloudburst]({{ site.url }}/assets/20170707_travel_1/IMG_1101.JPG)
+![cloudburst]({{ site.url }}/assets/images/20170707_travel_1/IMG_1101.JPG)
 
 신생 브루어리인 Red Hook의 버라이어티 팩을 주문해서 마셔보았다. 취한다...
 
@@ -54,7 +55,7 @@ categories: GEP
 
 소프트웨어 기술 측면에서 미국을 바라본다면 시애틀이 이제는 클라우드의 최중심에 있는 도시가 되었다. AWS 로 유명한 아마존 본사, Azure의 마이크로소프트, Google Cloud Platform의 구글도 2019년 완공을 목표로 사무실을 만들고 있는 중이다.
 
-![cloudburst]({{ site.url }}/assets/20170707_travel_1/20160909_Vulcan_Block.jpg)
+![cloudburst]({{ site.url }}/assets/images/20170707_travel_1/20160909_Vulcan_Block.jpg)
 
 시애틀에 새롭게 만들어지고 있는 구글 오피스 - 클라우드 관련 부서들이 입주할 예정이라고 한다.
 
@@ -70,22 +71,22 @@ categories: GEP
 
 전망대는 여름을 위해서 아껴둠. 확실히 관광 명소라 그런지 평소보다는 사람이 많음. 석양이 질 무렵이 전망대에 올라갈 베스트 타임. 일단 숙소에서 걸어서 3분거리라 자주 가게 될 듯 하지만 아무래도 전망대에 올라가는건 22불이라 조금 망설여짐. 하지만 가  볼 생각이다.
 
-![spaveneedle]({{ site.url }}/assets/20170707_travel_1/IMG_1017.JPG)
+![spaveneedle]({{ site.url }}/assets/images/20170707_travel_1/IMG_1017.JPG)
 
 **올림픽 조각 공원**
 
 강아지를 데리고 산책을 나오거나 조깅을 하는 사람들이 많았음. 아 시애틀은 비가 와도 맞으면서 조깅을 함. 공기가 깨끗해서 일까? 스페이스 니들에서 별로 안 먼데 파이크 플레이스 마켓으로 가는 길목이기도 하고 바로 항구랑 캐나다쪽이 보여서 들려볼만함.
 
-![OlympicSculpture]({{ site.url }}/assets/20170707_travel_1/IMG_1020.JPG)
+![OlympicSculpture]({{ site.url }}/assets/images/20170707_travel_1/IMG_1020.JPG)
 
 **파이크 플레이스 마켓**
 
 역시 시애틀의 관광 명소로 해산물과 클램 챠우더가 유명. 스타벅스 1호점이나 Piroshky Piroshky 도 다 여기 있다. 항상 북적거리고 재미가 나는 곳이니 시애틀에 간다면 꼭 들려야함!
 
-![PikePlaceMarket]({{ site.url }}/assets/20170707_travel_1/IMG_1041.JPG)
+![PikePlaceMarket]({{ site.url }}/assets/images/20170707_travel_1/IMG_1041.JPG)
 
 **Piroshky Piroshky**
 
 러시아식 빵집으로 유명한 Piroshky Piroshky 가게가 있는데 스타벅스 1호점의 긴 줄에 질려 여기를 먼저감. 빵은 주문하고 바로 나오니까. 비프 앤 치즈를 먹었는데 가격은 세금 포함 7달러가 넘어서 너무 비싸다고 느껴지긴 했는데 맛은 또 괜찮네. 그래도 너무 비싸다. 이건 3달러따리 양임. 탕탕탕!
 
-![PiroshkyPiroshky]({{ site.url }}/assets/20170707_travel_1/IMG_1024.JPG)
+![PiroshkyPiroshky]({{ site.url }}/assets/images/20170707_travel_1/IMG_1024.JPG)

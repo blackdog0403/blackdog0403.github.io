@@ -1,8 +1,9 @@
 ---
-layout: "post"
+layout: "posts"
 title: "How to add user"
 date: "2017-09-08 09:18"
-categories:  linux
+categories: linux
+classes: wide
 ---
 
 # How to add user
