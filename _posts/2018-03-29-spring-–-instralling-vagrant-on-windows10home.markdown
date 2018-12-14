@@ -6,15 +6,15 @@ categories:  linux
 classes: wide
 ---
 
-## Introducing apache bench
+# Introducing apache bench
 
-
-### install
+## install
 
 sudo apt-get install apache2-utils
 
-### instruction
-```
+## instruction
+
+```bash
 Usage: ab [options] [http[s]://]hostname[:port]/path
 Options are:
     -n requests     Number of requests to perform
@@ -61,15 +61,15 @@ Options are:
 
 ```
 
+## example
 
-
-### example
 ```bash
 ab -n 400 -c 1 http://13.125.237.30/  
 ```
 
-### result
-```
+## result
+
+```bash
 This is ApacheBench, Version 2.3 <$Revision: 1706008 $>
 Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
 Licensed to The Apache Software Foundation, http://www.apache.org/
@@ -123,5 +123,3 @@ Percentage of the requests served within a certain time (ms)
   99%     23
  100%     38 (longest request)
  ```
- 
-
