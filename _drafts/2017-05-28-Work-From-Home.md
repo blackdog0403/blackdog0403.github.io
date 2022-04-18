@@ -1,5 +1,5 @@
 ---
-layout: posts
+layout: draft
 title:  "Samsung CNCT의 개발환경 문화 소개"
 date:   2017-05-28 14:35:00 -0700
 categories: GEP

@@ -1,5 +1,5 @@
 ---
-layout: posts
+layout: draft
 title:  "Samsung-cnct's How we work"
 date:   2017-07-11 19:35:00 -0700
 categories:  Agile development
