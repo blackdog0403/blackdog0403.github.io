@@ -162,6 +162,12 @@ exclude:
   - tmp
   - /docs # ignore Minimal Mistakes /docs
   - /test # ignore Minimal Mistakes /test
+  - demos/ # test code for posts, browsed on GitHub, not published
+  - vendor/
+  - .bundle/
+  - .jekyll-cache
+  - Gemfile*
+  - README*
 keep_files:
   - .git
   - .svn
@@ -208,15 +214,7 @@ plugins:
   - jekyll-sitemap
   - jekyll-gist
   - jekyll-feed
-  - jemoji
-
-# mimic GitHub Pages with --safe
-whitelist:
-  - jekyll-paginate
-  - jekyll-sitemap
-  - jekyll-gist
-  - jekyll-feed
-  - jemoji
+  - jekyll-include-cache
 
 
 # Archives
