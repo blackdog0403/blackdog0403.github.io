@@ -216,6 +216,7 @@ plugins:
   - jekyll-feed
   - jekyll-include-cache
   - jekyll-optional-front-matter
+  - jekyll-default-layout
 
 
 # Archives

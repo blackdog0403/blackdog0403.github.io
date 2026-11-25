@@ -79,6 +79,8 @@ GEM
       safe_yaml (~> 1.0)
       terminal-table (>= 1.8, < 4.0)
       webrick (~> 1.7)
+    jekyll-default-layout (0.2.1)
+      jekyll (>= 3.0, < 5.0)
     jekyll-feed (0.18.0)
       jekyll (>= 3.7, < 5.0)
     jekyll-gist (1.5.0)
@@ -106,13 +108,6 @@ GEM
       rb-inotify (~> 0.9, >= 0.9.10)
     logger (1.7.0)
     mercenary (0.4.0)
-    minimal-mistakes-jekyll (4.28.1)
-      jekyll (>= 3.7, < 5.0)
-      jekyll-feed (~> 0.1)
-      jekyll-gist (~> 1.5)
-      jekyll-include-cache (~> 0.1)
-      jekyll-paginate (~> 1.1)
-      jekyll-sitemap (~> 1.3)
     net-http (0.10.0)
       net-protocol (>= 0.3.0)
       uri (>= 0.11.1)
@@ -196,13 +191,13 @@ PLATFORMS
 
 DEPENDENCIES
   jekyll (~> 4.4)
+  jekyll-default-layout
   jekyll-feed
   jekyll-gist
   jekyll-include-cache
   jekyll-optional-front-matter
   jekyll-paginate
   jekyll-sitemap
-  minimal-mistakes-jekyll (~> 4.28)
   webrick (~> 1.8)
 
 CHECKSUMS
@@ -240,6 +235,7 @@ CHECKSUMS
   http_parser.rb (0.8.1) sha256=9ae8df145b39aa5398b2f90090d651c67bd8e2ebfe4507c966579f641e11097a
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   jekyll (4.4.1) sha256=4c1144d857a5b2b80d45b8cf5138289579a9f8136aadfa6dd684b31fe2bc18c1
+  jekyll-default-layout (0.2.1) sha256=358af41f82ce8da7abcdec820831afaea990f1a31eda8c5e6b393b4e1a2485fd
   jekyll-feed (0.18.0) sha256=8e6829f455b8764a8fa1bbb198d0ebb3525128dacc6ffe9d15f4df7388bc3647
   jekyll-gist (1.5.0) sha256=495b6483552a3e2975a2752964ea7acddd545bc6e13ce2be15a50cec8d4c9f0f
   jekyll-include-cache (0.3.2) sha256=43ede7567207b9aaeee3c4eed211b54bf52e35dd8acdfb2c78f4e4964ba06c2d
@@ -255,7 +251,6 @@ CHECKSUMS
   listen (3.10.1) sha256=4c3f32855657f348747da4dd2372ff3790d90a6b1d3e4f21a3706adb2d04783c
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   mercenary (0.4.0) sha256=b25a1e4a59adca88665e08e24acf0af30da5b5d859f7d8f38fba52c28f405138
-  minimal-mistakes-jekyll (4.28.1) sha256=b3fb4e57888ab092bf06473b69beca869b1be0c8f943e80b9d7c7165e4884289
   net-http (0.10.0) sha256=1a2ff6e37a05724973c43f2bf7bf105f59c36a4cd0a7e9b1c021a0a566987c27
   net-protocol (0.4.0) sha256=f9f90c8c6f64794a45160bf422177a336db12809de3beeeaa26b88fcd2e8c853
   octokit (4.25.1) sha256=c02092ee82dcdfe84db0e0ea630a70d32becc54245a4f0bacfd21c010df09b96

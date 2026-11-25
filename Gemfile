@@ -1,7 +1,6 @@
 source "https://rubygems.org"
 
 gem "jekyll", "~> 4.4"
-gem "minimal-mistakes-jekyll", "~> 4.28"
 
 group :jekyll_plugins do
   gem "jekyll-paginate"
@@ -9,8 +8,10 @@ group :jekyll_plugins do
   gem "jekyll-gist"
   gem "jekyll-feed"
   gem "jekyll-include-cache"
-  # The legacy GitHub Pages build rendered front-matter-less Markdown (gosample/).
+  # The legacy GitHub Pages build rendered front-matter-less Markdown (gosample/)
+  # and gave it the "page" layout; these two plugins reproduce that.
   gem "jekyll-optional-front-matter"
+  gem "jekyll-default-layout"
 end
 
 # Ruby 3.x no longer bundles webrick, which `jekyll serve` needs.
