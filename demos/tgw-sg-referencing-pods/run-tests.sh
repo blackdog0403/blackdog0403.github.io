@@ -87,10 +87,11 @@ att_option() {
 set_att() { # enable|disable
   aws ec2 modify-transit-gateway-vpc-attachment ${AWS_PROFILE:+--profile "$AWS_PROFILE"} --region "$REGION" \
     --transit-gateway-attachment-id "$ATT_A" --options "SecurityGroupReferencingSupport=$1" > /dev/null || return
-  for _ in $(seq 60); do [[ "$(att_option)" == "available	$1" ]] && break; sleep 5; done
-  local s; s=$(att_option)
+  local want="available"$'\t'"$1" s  # att_option prints "State<TAB>Option"
+  for _ in $(seq 60); do [[ "$(att_option)" == "$want" ]] && break; sleep 5; done
+  s=$(att_option)
   echo "attachment A: $s at $(date -u +%T)"
-  [[ $s == "available	$1" ]]
+  [[ $s == "$want" ]]
 }
 
 echo "== $(date -u +%T) test 1 (sg-pod, branch ENI)"; probe "$WITH" "test 1"
