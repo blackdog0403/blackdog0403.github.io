@@ -17,8 +17,9 @@
   try{l=localStorage.getItem('blog-lang');t=localStorage.getItem('blog-theme')}catch(e){}
   var lang=(q==='en'||q==='ko')?q:(l==='ko'?'ko':'en');
   r.setAttribute('data-lang',lang); r.setAttribute('lang',lang);
-  if(t==='dark'||t==='light')r.setAttribute('data-theme',t);
-  else if(emb)r.setAttribute('data-theme','light');
+  /* Embedded in the light blog theme, where the theme toggle is hidden: always light. */
+  if(emb)r.setAttribute('data-theme','light');
+  else if(t==='dark'||t==='light')r.setAttribute('data-theme',t);
 })();
 </script>
 <style>

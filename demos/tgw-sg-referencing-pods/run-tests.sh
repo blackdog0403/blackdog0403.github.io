@@ -95,7 +95,14 @@ echo "== $(date -u +%T) test 2 (no SGPP, node SG)";  probe "$NOSG" "test 2"
 
 echo "== test 3 (SG referencing disabled on attachment A)"
 # If the script stops before the restore below, turn referencing back on anyway.
-trap 'echo "== restoring SG referencing on attachment A"; set_att enable' EXIT
+# Ignore further signals and errors here, and wait out a pending modify first.
+restore() {
+  trap '' INT TERM; set +e
+  echo "== restoring SG referencing on attachment A"
+  for _ in $(seq 60); do [[ "$(att_option)" == available* ]] && break; sleep 5; done
+  set_att enable || echo "restore failed; see README Troubleshooting"
+}
+trap restore EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 set_att disable

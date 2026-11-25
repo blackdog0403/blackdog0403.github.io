@@ -87,7 +87,7 @@ and turns it back on when it exits, even on an error or Ctrl-C. If the script is
 killed before it can do that (for example with `kill -9`), turn it back on by hand:
 
 ```bash
-aws ec2 modify-transit-gateway-vpc-attachment --region "${AWS_REGION:-ap-northeast-2}" \
+aws ec2 modify-transit-gateway-vpc-attachment --region "${AWS_REGION:-${AWS_DEFAULT_REGION:-ap-northeast-2}}" \
   --transit-gateway-attachment-id "$(terraform output -raw attachment_a_id)" \
   --options SecurityGroupReferencingSupport=enable
 ```

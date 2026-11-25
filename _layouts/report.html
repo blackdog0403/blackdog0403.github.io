@@ -93,6 +93,9 @@ layout: default
       if (!fitted) {
         // The frame is now as tall as the report, so the parent page scrolls it.
         fitted = true;
+        // The report shows its own thesis; the summary is for feeds and no-JS readers.
+        var summary = document.querySelector('.report-summary');
+        if (summary) summary.hidden = true;
         frame.setAttribute('scrolling', 'no');
         d.documentElement.style.overflow = 'hidden';
       }
