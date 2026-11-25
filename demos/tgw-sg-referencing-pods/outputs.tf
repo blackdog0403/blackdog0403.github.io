@@ -1,0 +1,9 @@
+output "cluster_name" { value = aws_eks_cluster.this.name }
+output "cluster_sg_id" { value = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id }
+output "pod_sg_id" { value = aws_security_group.pod.id }
+output "db_sg_id" { value = aws_security_group.db.id }
+output "target_ip" { value = aws_instance.target.private_ip }
+output "tgw_id" { value = aws_ec2_transit_gateway.this.id }
+output "attachment_a_id" { value = aws_ec2_transit_gateway_vpc_attachment.a.id }
+output "attachment_b_id" { value = aws_ec2_transit_gateway_vpc_attachment.b.id }
+output "flow_log_group" { value = aws_cloudwatch_log_group.flow.name }
