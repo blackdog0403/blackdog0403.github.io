@@ -5,6 +5,8 @@ layout: default
   Post page that embeds a self-contained HTML report (page.report_src) in a
   full-width iframe. The report is served from the same origin, so the iframe
   height follows the report document; the language toggle lives in the report.
+  The post body (a short summary for the feed and no-JS readers) goes above it.
+  Without JavaScript the iframe keeps a fixed height and scrolls by itself.
 {% endcomment %}
 {% assign report_url = page.report_src | relative_url %}
 
@@ -19,14 +21,15 @@ layout: default
         {% if page.title %}<h1 id="page-title" class="page__title" itemprop="headline">{{ page.title | markdownify | remove: "<p>" | remove: "</p>" }}</h1>{% endif %}
         <p class="page__meta">
           {% if page.date %}<time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%B %d, %Y" }}</time> &middot; {% endif %}
-          <a href="{{ report_url }}">Open full page</a>
+          <a href="{{ report_url | escape }}">Open full page</a>
         </p>
       </header>
 
       <section class="page__content report-content" itemprop="text">
-        <iframe id="report-frame" class="report-frame" src="{{ report_url }}" title="{{ page.title | escape }}" scrolling="no"></iframe>
-        <noscript><p><a href="{{ report_url }}">Open the report</a></p></noscript>
-        {{ content }}
+        {% assign summary = content | strip %}
+        {% if summary != "" %}<div class="report-summary">{{ content }}</div>{% endif %}
+        <iframe id="report-frame" class="report-frame" src="{{ report_url | escape }}" title="{{ page.title | escape }}"></iframe>
+        <noscript><p><a href="{{ report_url | escape }}">Open the report</a></p></noscript>
       </section>
 
       <footer class="page__meta">
@@ -49,7 +52,9 @@ layout: default
   .report-page { width: 100%; float: none; padding-left: 0; padding-right: 0; }
   .report-page .page__inner-wrap { float: none; width: 100%; }
   .report-header { margin-bottom: 1em; }
-  .report-frame { display: block; width: 100%; height: 80vh; border: 0; overflow: hidden; }
+  .report-summary { font-size: 0.75em; color: #6f777d; margin-bottom: 1em; }
+  .report-summary p { margin: 0 0 0.5em; }
+  .report-frame { display: block; width: 100%; height: 80vh; border: 0; }
 </style>
 
 <script>
@@ -57,6 +62,21 @@ layout: default
     var frame = document.getElementById('report-frame');
     if (!frame) return;
     var observer = null;
+    var fitted = false;
+
+    // Pass ?lang=en|ko of the post page on to the report.
+    var lang = null;
+    try { lang = new URLSearchParams(window.location.search).get('lang'); } catch (e) {}
+    if (lang === 'en' || lang === 'ko') {
+      var base = frame.getAttribute('src');
+      frame.setAttribute('src', base + (base.indexOf('?') < 0 ? '?' : '&') + 'lang=' + lang);
+    }
+
+    function hashId() {
+      var h = window.location.hash.slice(1);
+      if (!h) return '';
+      try { return decodeURIComponent(h); } catch (e) { return h; }
+    }
 
     function doc() {
       try { return frame.contentDocument; } catch (e) { return null; }
@@ -68,7 +88,14 @@ layout: default
       // The <html> box has the content height; scrollHeight would never shrink
       // below the current iframe height.
       var h = Math.ceil(d.documentElement.getBoundingClientRect().height);
-      if (h > 0) frame.style.height = h + 'px';
+      if (h <= 0) return;
+      frame.style.height = h + 'px';
+      if (!fitted) {
+        // The frame is now as tall as the report, so the parent page scrolls it.
+        fitted = true;
+        frame.setAttribute('scrolling', 'no');
+        d.documentElement.style.overflow = 'hidden';
+      }
     }
 
     function scrollToTarget(d, id) {
@@ -91,6 +118,10 @@ layout: default
         observer.observe(d.documentElement);
       }
 
+      // Forward the post page's #hash to the report: scroll to that section.
+      var id = hashId();
+      if (id && fitted) scrollToTarget(d, id);
+
       // The iframe does not scroll itself, so handle in-page links in the parent,
       // and open other links in the top window instead of inside the frame.
       d.addEventListener('click', function (e) {
@@ -99,7 +130,9 @@ layout: default
         var href = a.getAttribute('href');
         if (href.charAt(0) === '#') {
           e.preventDefault();
-          scrollToTarget(d, decodeURIComponent(href.slice(1)));
+          var target = href.slice(1);
+          try { target = decodeURIComponent(target); } catch (err) {}
+          scrollToTarget(d, target);
         } else if (!a.target) {
           a.target = '_top';
         }

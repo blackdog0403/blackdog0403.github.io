@@ -6,14 +6,19 @@
 <title>Transit Gateway Security Group Referencing with Security Groups for Pods</title>
 <meta name="description" content="I tested in the Seoul Region whether AWS Transit Gateway security group referencing works with Amazon EKS security groups for Pods (branch ENIs). In strict mode, a rule whose only source was the Pod security group allowed the connection; in standard mode with EXTERNALSNAT=false, the node security group decided instead.">
 <script>
-/* 첫 화면을 그리기 전에 언어와 테마를 정한다. 기본은 영어. ?lang=en|ko 가 localStorage보다 우선한다. */
+/* 첫 화면을 그리기 전에 언어와 테마를 정한다. 기본은 영어. ?lang=en|ko 가 localStorage보다 우선한다.
+   블로그 글 안에 iframe으로 들어가면(data-embedded) 제목, 날짜, 홈 링크, 테마 버튼을 숨기고
+   사용자가 고른 테마가 없으면 밝은 테마를 쓴다. */
 (function(){
-  var r=document.documentElement, q=null, l=null, t=null;
+  var r=document.documentElement, q=null, l=null, t=null, emb=true;
+  try{emb=window.top!==window}catch(e){}
+  if(emb)r.setAttribute('data-embedded','');
   try{q=new URLSearchParams(location.search).get('lang')}catch(e){}
-  try{l=localStorage.getItem('techblogs-lang');t=localStorage.getItem('techblogs-theme')}catch(e){}
+  try{l=localStorage.getItem('blog-lang');t=localStorage.getItem('blog-theme')}catch(e){}
   var lang=(q==='en'||q==='ko')?q:(l==='ko'?'ko':'en');
   r.setAttribute('data-lang',lang); r.setAttribute('lang',lang);
   if(t==='dark'||t==='light')r.setAttribute('data-theme',t);
+  else if(emb)r.setAttribute('data-theme','light');
 })();
 </script>
 <style>
@@ -113,6 +118,10 @@ pre code{background:none;padding:0}
 footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
 @media (max-width:640px){h1{font-size:24px} h2{font-size:19px} .wrap{padding:0 16px 48px}}
 @media print{.top{display:none} body{background:#fff}}
+/* iframe 안: 블로그 글이 제목과 날짜를 보여 주므로 반복하지 않는다. 언어 버튼만 남긴다. */
+html[data-embedded] .top{justify-content:flex-end;border-bottom:0;padding:8px 0 0}
+html[data-embedded] .top .home, html[data-embedded] #themeSeg, html[data-embedded] .masthead h1, html[data-embedded] .meta-top{display:none}
+html[data-embedded] .masthead{padding-top:12px}
 </style>
 </head>
 <body>
@@ -259,7 +268,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
 <text x="720" y="220" font-size="12.5" class="muted l-en">(security group ID in VPC A)</text>
 <text x="720" y="244" font-size="12.5" class="muted l-ko">CIDR 규칙 없음</text>
 <text x="720" y="244" font-size="12.5" class="muted l-en">no CIDR rule</text>
-<text x="720" y="270" font-size="12.5" class="muted">Flow Logs: ENI</text>
+<text x="720" y="270" font-size="12.5" class="muted">Flow Logs: subnet</text>
 <text x="706" y="314" font-size="13" class="t-ok l-ko">테스트 1: 허용</text>
 <text x="706" y="314" font-size="13" class="t-ok l-en">Test 1: allowed</text>
 <text x="706" y="336" font-size="13" class="t-no l-ko">테스트 2, 3: 차단</text>
@@ -281,7 +290,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:v
 <tr><td>VPC A</td><td>EKS 1.35 cluster, one m5.large managed node (AL2023). A Nitro instance that supports trunk ENIs. One NAT gateway for image pulls</td></tr>
 <tr><td>VPC CNI</td><td><code>ENABLE_POD_ENI=true</code>, <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=true</code>, <code>POD_SECURITY_GROUP_ENFORCING_MODE</code> not set (default strict)</td></tr>
 <tr><td><code>sg-pod</code></td><td>Attached to the with-sg Pod through a <code>SecurityGroupPolicy</code>. Outbound 8080 to the VPC B CIDR, written as a CIDR because TGW referencing does not work in outbound rules. The cluster security group is attached as well for DNS</td></tr>
-<tr><td>VPC B</td><td>One t4g.nano running <code>python3 -m http.server 8080</code>. VPC Flow Logs on the target ENI</td></tr>
+<tr><td>VPC B</td><td>One t4g.nano running <code>python3 -m http.server 8080</code>. VPC Flow Logs on the target subnet</td></tr>
 <tr><td><code>sg-db</code></td><td>Inbound 8080 from <code>sg-pod</code> only. No CIDR rule</td></tr>
 <tr><td>TGW</td><td>Attachments for VPC A and B. Referencing enabled on the TGW and both attachments. Each VPC route table sends the other VPC's CIDR to the TGW</td></tr>
 </tbody>
@@ -336,7 +345,7 @@ spec:
          test 3                             FAIL (timeout)
 05:29:24 attachment A referencing enable
          test 1 again                       OK (HTTP 200)</code></pre></div>
-<p>Filtering the Flow Logs of the target ENI in VPC B to port 8080 shows source IPs and actions that match the curl results.</p>
+<p>Filtering the Flow Logs for the target ENI in VPC B to port 8080 shows source IPs and actions that match the curl results.</p>
 <div class="snippet"><div class="snippet-bar"><span>text (VPC Flow Logs)</span><button type="button" class="copy"><span class="i">Copy</span><span class="done">Copied</span></button></div><pre><code>srcaddr      dstaddr     dstport  action  direction
 10.50.1.22   10.60.1.15  8080     REJECT  ingress   # test 2
 10.50.1.67   10.60.1.15  8080     ACCEPT  ingress   # test 1
@@ -402,7 +411,7 @@ srcaddr      dstaddr     dstport  action
 <ul>
 <li><b>Both the TGW and both attachments</b> have referencing turned on. It is off by default at the TGW level, including TGWs created before the feature existed (<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-for-aws-transit-gateway/" target="_blank" rel="noopener">launch post</a>). If one side is off, traffic that relies only on the reference is dropped, as in test 3. When replacing CIDR rules with references, keep the CIDR rules in place until you have confirmed the new rule works.</li>
 <li><b>Inbound rules only.</b> Write the Pod security group's outbound rules with the other VPC's CIDR or a prefix list.</li>
-<li><b>The Pod IP reaches the target unchanged.</b> The combination I confirmed is strict mode with <code>EXTERNALSNAT=true</code>. Check first that <code>srcaddr</code> in the target ENI's Flow Logs is the Pod IP.</li>
+<li><b>The Pod IP reaches the target unchanged.</b> The combination I confirmed is strict mode with <code>EXTERNALSNAT=true</code>. Check first that <code>srcaddr</code> in the Flow Logs for the target ENI is the Pod IP.</li>
 <li><b>No inspection appliance on the path.</b> The TGW docs say referencing does not work across a Gateway Load Balancer or Network Firewall in an inspection VPC. An AWS blog post says you cannot use referencing when more specific routing in a VPC sends traffic between subnets through a Gateway Load Balancer or Network Firewall for inspection (<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/automated-vpc-prefix-list-population-for-cross-region-and-in-region-security-group-referencing/" target="_blank" rel="noopener">prefix list post</a>). The Cloud WAN launch post says it doesn't work when Network Firewall or a third-party appliance inspects the traffic (<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-and-enhanced-dns-support-for-aws-cloud-wan/" target="_blank" rel="noopener">Cloud WAN post</a>). Allow such paths with a CIDR or prefix list.</li>
 <li><b>The same TGW</b> connects both VPCs. Paths across TGW peering and PrivateLink endpoints are not supported.</li>
 </ul>
@@ -537,7 +546,7 @@ srcaddr      dstaddr     dstport  action
 <text x="720" y="220" font-size="12.5" class="muted l-en">(security group ID in VPC A)</text>
 <text x="720" y="244" font-size="12.5" class="muted l-ko">CIDR 규칙 없음</text>
 <text x="720" y="244" font-size="12.5" class="muted l-en">no CIDR rule</text>
-<text x="720" y="270" font-size="12.5" class="muted">Flow Logs: ENI</text>
+<text x="720" y="270" font-size="12.5" class="muted">Flow Logs: subnet</text>
 <text x="706" y="314" font-size="13" class="t-ok l-ko">테스트 1: 허용</text>
 <text x="706" y="314" font-size="13" class="t-ok l-en">Test 1: allowed</text>
 <text x="706" y="336" font-size="13" class="t-no l-ko">테스트 2, 3: 차단</text>
@@ -559,7 +568,7 @@ srcaddr      dstaddr     dstport  action
 <tr><td>VPC A</td><td>EKS 1.35 클러스터, 관리형 노드 그룹 m5.large 1대(AL2023). trunk ENI를 지원하는 Nitro 인스턴스. 이미지를 받기 위한 NAT 게이트웨이 1개</td></tr>
 <tr><td>VPC CNI</td><td><code>ENABLE_POD_ENI=true</code>, <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=true</code>, <code>POD_SECURITY_GROUP_ENFORCING_MODE</code>는 지정하지 않음(기본값 strict)</td></tr>
 <tr><td><code>sg-pod</code></td><td><code>SecurityGroupPolicy</code>로 with-sg Pod에 붙임. 아웃바운드는 VPC B CIDR로 8080. TGW에서는 아웃바운드 규칙에 보안 그룹을 참조할 수 없어서 CIDR로 적음. DNS를 위해 클러스터 보안 그룹도 함께 붙임</td></tr>
-<tr><td>VPC B</td><td>t4g.nano 1대에서 <code>python3 -m http.server 8080</code>. 대상 ENI에 VPC Flow Logs</td></tr>
+<tr><td>VPC B</td><td>t4g.nano 1대에서 <code>python3 -m http.server 8080</code>. 대상 서브넷에 VPC Flow Logs</td></tr>
 <tr><td><code>sg-db</code></td><td>인바운드 8080, 출발지는 <code>sg-pod</code> 하나. CIDR 규칙 없음</td></tr>
 <tr><td>TGW</td><td>VPC A와 B attachment. TGW와 두 attachment 모두 보안 그룹 참조 enable. 양쪽 라우팅 테이블에 상대 VPC CIDR → TGW</td></tr>
 </tbody>
@@ -614,7 +623,7 @@ spec:
          test 3                             FAIL (timeout)
 05:29:24 attachment A referencing enable
          test 1 again                       OK (HTTP 200)</code></pre></div>
-<p>VPC B 대상 ENI의 Flow Logs에서 8080 포트만 골라 보면 출발지 IP와 판정이 curl 결과와 일치합니다.</p>
+<p>VPC B 대상 ENI에 대한 Flow Logs에서 8080 포트만 골라 보면 출발지 IP와 판정이 curl 결과와 일치합니다.</p>
 <div class="snippet"><div class="snippet-bar"><span>text (VPC Flow Logs)</span><button type="button" class="copy"><span class="i">복사</span><span class="done">복사됨</span></button></div><pre><code>srcaddr      dstaddr     dstport  action  direction
 10.50.1.22   10.60.1.15  8080     REJECT  ingress   # test 2
 10.50.1.67   10.60.1.15  8080     ACCEPT  ingress   # test 1
@@ -680,7 +689,7 @@ srcaddr      dstaddr     dstport  action
 <ul>
 <li><b>TGW와 양쪽 attachment</b>에서 보안 그룹 참조가 켜져 있어야 합니다. TGW 수준의 기본값은 꺼짐이고, 이 기능이 나오기 전에 만든 TGW도 꺼져 있습니다(<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-for-aws-transit-gateway/" target="_blank" rel="noopener">발표 블로그</a>). 한쪽만 꺼져 있어도 테스트 3처럼 보안 그룹 참조에만 의존하는 트래픽은 막힙니다. 기존 CIDR 규칙을 보안 그룹 참조로 바꿀 때는 CIDR 규칙을 남겨 둔 채로 먼저 확인하는 편이 안전합니다.</li>
 <li><b>인바운드 규칙에만</b> 씁니다. Pod 보안 그룹의 아웃바운드는 상대 VPC CIDR이나 prefix list로 적어야 합니다.</li>
-<li><b>Pod IP 그대로</b> 대상에 도착해야 합니다. 이번에 확인한 조합은 strict 모드 + <code>EXTERNALSNAT=true</code>입니다. 대상 ENI의 Flow Logs에서 <code>srcaddr</code>가 Pod IP인지 먼저 확인합니다.</li>
+<li><b>Pod IP 그대로</b> 대상에 도착해야 합니다. 이번에 확인한 조합은 strict 모드 + <code>EXTERNALSNAT=true</code>입니다. 대상 ENI에 대한 Flow Logs에서 <code>srcaddr</code>가 Pod IP인지 먼저 확인합니다.</li>
 <li><b>경로에 검사 장비가 없어야</b> 합니다. TGW 문서는 검사용 VPC의 Gateway Load Balancer나 Network Firewall을 거치면 보안 그룹 참조가 동작하지 않는다고 설명합니다. AWS 블로그는 VPC 안에서 더 구체적인 라우팅으로 서브넷 사이 트래픽을 Gateway Load Balancer나 Network Firewall로 검사하면 보안 그룹 참조를 쓸 수 없다고 설명합니다(<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/automated-vpc-prefix-list-population-for-cross-region-and-in-region-security-group-referencing/" target="_blank" rel="noopener">prefix list 블로그</a>). Cloud WAN 발표 블로그도 Network Firewall이나 서드파티 장비가 트래픽을 검사하면 동작하지 않는다고 설명합니다(<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-and-enhanced-dns-support-for-aws-cloud-wan/" target="_blank" rel="noopener">Cloud WAN 블로그</a>). 그런 경로는 CIDR이나 prefix list로 허용합니다.</li>
 <li><b>같은 TGW</b>에 두 VPC가 붙어 있어야 합니다. TGW 피어링을 거치는 경로와 PrivateLink 엔드포인트는 지원하지 않습니다.</li>
 </ul>
@@ -727,8 +736,8 @@ srcaddr      dstaddr     dstport  action
   function mark(id,v){var s=document.getElementById(id);if(!s)return;s.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-v')===v?'true':'false')})}
   function curTheme(){var t=root.getAttribute('data-theme');if(t)return t;return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
   mark('langSeg',root.getAttribute('data-lang'));mark('themeSeg',curTheme());
-  document.getElementById('langSeg').addEventListener('click',function(e){var v=e.target.closest('button');if(!v)return;v=v.getAttribute('data-v');root.setAttribute('data-lang',v);root.setAttribute('lang',v);mark('langSeg',v);put('techblogs-lang',v);try{parent.postMessage({type:'techblogs-lang',lang:v},'*')}catch(e){}});
-  document.getElementById('themeSeg').addEventListener('click',function(e){var v=e.target.closest('button');if(!v)return;v=v.getAttribute('data-v');root.setAttribute('data-theme',v);mark('themeSeg',v);put('techblogs-theme',v)});
+  document.getElementById('langSeg').addEventListener('click',function(e){var v=e.target.closest('button');if(!v)return;v=v.getAttribute('data-v');root.setAttribute('data-lang',v);root.setAttribute('lang',v);mark('langSeg',v);put('blog-lang',v);});
+  document.getElementById('themeSeg').addEventListener('click',function(e){var v=e.target.closest('button');if(!v)return;v=v.getAttribute('data-v');root.setAttribute('data-theme',v);mark('themeSeg',v);put('blog-theme',v)});
   document.querySelectorAll('.snippet .copy').forEach(function(b){b.addEventListener('click',function(){var c=b.closest('.snippet').querySelector('code').innerText;navigator.clipboard.writeText(c).then(function(){b.classList.add('copied');setTimeout(function(){b.classList.remove('copied')},1500)})})});
 })();
 </script>
