@@ -85,6 +85,8 @@ GEM
       octokit (~> 4.2)
     jekyll-include-cache (0.3.2)
       jekyll (>= 3.7, < 5.0)
+    jekyll-optional-front-matter (0.3.5)
+      jekyll (>= 3.0, < 5.0)
     jekyll-paginate (1.1.0)
     jekyll-sass-converter (3.1.0)
       sass-embedded (~> 1.75)
@@ -197,6 +199,7 @@ DEPENDENCIES
   jekyll-feed
   jekyll-gist
   jekyll-include-cache
+  jekyll-optional-front-matter
   jekyll-paginate
   jekyll-sitemap
   minimal-mistakes-jekyll (~> 4.28)
@@ -240,6 +243,7 @@ CHECKSUMS
   jekyll-feed (0.18.0) sha256=8e6829f455b8764a8fa1bbb198d0ebb3525128dacc6ffe9d15f4df7388bc3647
   jekyll-gist (1.5.0) sha256=495b6483552a3e2975a2752964ea7acddd545bc6e13ce2be15a50cec8d4c9f0f
   jekyll-include-cache (0.3.2) sha256=43ede7567207b9aaeee3c4eed211b54bf52e35dd8acdfb2c78f4e4964ba06c2d
+  jekyll-optional-front-matter (0.3.5) sha256=10ee0a3e3383c1eb51af67c928a5e4c93c3db8d7c0c984e33b1010d4d768ecb1
   jekyll-paginate (1.1.0) sha256=880aadf4b02529a93541d508c5cbb744f014cbfc071d0263a31f25ec9066eb64
   jekyll-sass-converter (3.1.0) sha256=83925d84f1d134410c11d0c6643b0093e82e3a3cf127e90757a85294a3862443
   jekyll-sitemap (1.4.0) sha256=0de08c5debc185ea5a8f980e1025c7cd3f8e0c35c8b6ef592f15c46235cf4218

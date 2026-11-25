@@ -215,6 +215,7 @@ plugins:
   - jekyll-gist
   - jekyll-feed
   - jekyll-include-cache
+  - jekyll-optional-front-matter
 
 
 # Archives
@@ -268,3 +269,8 @@ defaults:
       share: true
       related: true
       # toc: true
+  # Report HTML is embedded by its post; keep only the post in the sitemap.
+  - scope:
+      path: "assets/reports"
+    values:
+      sitemap: false

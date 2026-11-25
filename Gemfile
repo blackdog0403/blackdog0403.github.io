@@ -9,6 +9,8 @@ group :jekyll_plugins do
   gem "jekyll-gist"
   gem "jekyll-feed"
   gem "jekyll-include-cache"
+  # The legacy GitHub Pages build rendered front-matter-less Markdown (gosample/).
+  gem "jekyll-optional-front-matter"
 end
 
 # Ruby 3.x no longer bundles webrick, which `jekyll serve` needs.
