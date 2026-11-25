@@ -16,7 +16,8 @@ POD_SG=$(out pod_sg_id); CLUSTER_SG=$(out cluster_sg_id); TARGET=$(out target_ip
 ATT_A=$(out attachment_a_id); LOG_GROUP=$(out flow_log_group)
 mkdir -p results
 RESULT=results/$(date -u +%Y%m%dT%H%M%SZ).txt
-exec > >(tee "$RESULT") 2>&1
+# tee ignores signals so the restore below can still write after a group TERM/HUP.
+exec > >(trap '' INT TERM HUP; exec tee "$RESULT") 2>&1
 START_MS=$(( $(date +%s) * 1000 ))
 
 cat <<EOF | $K apply -f -
@@ -85,9 +86,11 @@ att_option() {
 }
 set_att() { # enable|disable
   aws ec2 modify-transit-gateway-vpc-attachment ${AWS_PROFILE:+--profile "$AWS_PROFILE"} --region "$REGION" \
-    --transit-gateway-attachment-id "$ATT_A" --options "SecurityGroupReferencingSupport=$1" > /dev/null
+    --transit-gateway-attachment-id "$ATT_A" --options "SecurityGroupReferencingSupport=$1" > /dev/null || return
   for _ in $(seq 60); do [[ "$(att_option)" == "available	$1" ]] && break; sleep 5; done
-  echo "attachment A: $(att_option) at $(date -u +%T)"
+  local s; s=$(att_option)
+  echo "attachment A: $s at $(date -u +%T)"
+  [[ $s == "available	$1" ]]
 }
 
 echo "== $(date -u +%T) test 1 (sg-pod, branch ENI)"; probe "$WITH" "test 1"
@@ -97,20 +100,22 @@ echo "== test 3 (SG referencing disabled on attachment A)"
 # If the script stops before the restore below, turn referencing back on anyway.
 # Ignore further signals and errors here, and wait out a pending modify first.
 restore() {
-  trap '' INT TERM; set +e
-  echo "== restoring SG referencing on attachment A"
-  for _ in $(seq 60); do [[ "$(att_option)" == available* ]] && break; sleep 5; done
+  trap '' INT TERM HUP; set +e
+  echo "== restoring SG referencing on attachment A (waits up to 5 min for a pending change)"
+  local s
+  for _ in $(seq 60); do s=$(att_option) || break; [[ $s == available* ]] && break; sleep 5; done
   set_att enable || echo "restore failed; see README Troubleshooting"
 }
 trap restore EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+trap 'exit 129' HUP
 set_att disable
 sleep 60
 probe "$WITH" "test 3"
 echo "== restore"
 set_att enable
-trap - EXIT INT TERM
+trap - EXIT INT TERM HUP
 sleep 60
 probe "$WITH" "test 1 after re-enable"
 

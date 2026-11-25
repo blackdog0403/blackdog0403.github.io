@@ -8,7 +8,7 @@
 <script>
 /* 첫 화면을 그리기 전에 언어와 테마를 정한다. 기본은 영어. ?lang=en|ko 가 localStorage보다 우선한다.
    블로그 글 안에 iframe으로 들어가면(data-embedded) 제목, 날짜, 홈 링크, 테마 버튼을 숨기고
-   사용자가 고른 테마가 없으면 밝은 테마를 쓴다. */
+   테마 버튼이 없으므로 항상 밝은 테마를 쓴다. */
 (function(){
   var r=document.documentElement, q=null, l=null, t=null, emb=true;
   try{emb=window.top!==window}catch(e){}
