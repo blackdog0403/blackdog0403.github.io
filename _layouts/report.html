@@ -1,0 +1,147 @@
+---
+layout: default
+---
+{% comment %}
+  Post page that embeds a self-contained HTML report (page.report_src) in a
+  full-width iframe. The report is served from the same origin, so the iframe
+  height follows the report document; the language toggle lives in the report.
+  The post body (a short summary for the feed and no-JS readers) goes above it.
+  Without JavaScript the iframe keeps a fixed height and scrolls by itself.
+{% endcomment %}
+{% assign report_url = page.report_src | relative_url %}
+
+<div id="main" role="main" class="report-main">
+  <article class="page report-page" itemscope itemtype="http://schema.org/BlogPosting">
+    {% if page.title %}<meta itemprop="headline" content="{{ page.title | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
+    {% if page.excerpt %}<meta itemprop="description" content="{{ page.excerpt | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
+    {% if page.date %}<meta itemprop="datePublished" content="{{ page.date | date_to_xmlschema }}">{% endif %}
+
+    <div class="page__inner-wrap">
+      <header class="report-header">
+        {% if page.title %}<h1 id="page-title" class="page__title" itemprop="headline">{{ page.title | markdownify | remove: "<p>" | remove: "</p>" }}</h1>{% endif %}
+        <p class="page__meta">
+          {% if page.date %}<time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%B %d, %Y" }}</time> &middot; {% endif %}
+          <a href="{{ report_url | escape }}">Open full page</a>
+        </p>
+      </header>
+
+      <section class="page__content report-content" itemprop="text">
+        {% assign summary = content | strip %}
+        {% if summary != "" %}<div class="report-summary">{{ content }}</div>{% endif %}
+        <iframe id="report-frame" class="report-frame" src="{{ report_url | escape }}" title="{{ page.title | escape }}"></iframe>
+        <noscript><p><a href="{{ report_url | escape }}">Open the report</a></p></noscript>
+      </section>
+
+      <footer class="page__meta">
+        {% include page__taxonomy.html %}
+      </footer>
+
+      {% if page.share %}{% include social-share.html %}{% endif %}
+
+      {% include post_pagination.html %}
+    </div>
+
+    {% if jekyll.environment == 'production' and site.comments.provider and page.comments %}
+      {% include comments.html %}
+    {% endif %}
+  </article>
+</div>
+
+<style>
+  .report-main { max-width: 1280px; }
+  .report-page { width: 100%; float: none; padding-left: 0; padding-right: 0; }
+  .report-page .page__inner-wrap { float: none; width: 100%; }
+  .report-header { margin-bottom: 1em; }
+  .report-summary { font-size: 0.75em; color: #6f777d; margin-bottom: 1em; }
+  .report-summary p { margin: 0 0 0.5em; }
+  .report-frame { display: block; width: 100%; height: 80vh; border: 0; }
+</style>
+
+<script>
+  (function () {
+    var frame = document.getElementById('report-frame');
+    if (!frame) return;
+    var observer = null;
+    var fitted = false;
+
+    // Pass ?lang=en|ko of the post page on to the report.
+    var lang = null;
+    try { lang = new URLSearchParams(window.location.search).get('lang'); } catch (e) {}
+    if (lang === 'en' || lang === 'ko') {
+      var base = frame.getAttribute('src');
+      frame.setAttribute('src', base + (base.indexOf('?') < 0 ? '?' : '&') + 'lang=' + lang);
+    }
+
+    function hashId() {
+      var h = window.location.hash.slice(1);
+      if (!h) return '';
+      try { return decodeURIComponent(h); } catch (e) { return h; }
+    }
+
+    function doc() {
+      try { return frame.contentDocument; } catch (e) { return null; }
+    }
+
+    function fit() {
+      var d = doc();
+      if (!d || !d.documentElement) return;
+      // The <html> box has the content height; scrollHeight would never shrink
+      // below the current iframe height.
+      var h = Math.ceil(d.documentElement.getBoundingClientRect().height);
+      if (h <= 0) return;
+      frame.style.height = h + 'px';
+      if (!fitted) {
+        // The frame is now as tall as the report, so the parent page scrolls it.
+        fitted = true;
+        // The report shows its own thesis; the summary is for feeds and no-JS readers.
+        var summary = document.querySelector('.report-summary');
+        if (summary) summary.hidden = true;
+        frame.setAttribute('scrolling', 'no');
+        d.documentElement.style.overflow = 'hidden';
+      }
+    }
+
+    function scrollToTarget(d, id) {
+      var el = d.getElementById(id);
+      if (!el) return;
+      var top = frame.getBoundingClientRect().top + window.pageYOffset + el.getBoundingClientRect().top;
+      window.scrollTo({ top: top - 16, behavior: 'smooth' });
+    }
+
+    frame.addEventListener('load', function () {
+      var d = doc();
+      if (!d) return;
+      fit();
+
+      // Re-fit when the report changes size (language toggle, fonts, images).
+      if (observer) observer.disconnect();
+      var RO = (frame.contentWindow && frame.contentWindow.ResizeObserver) || window.ResizeObserver;
+      if (RO) {
+        observer = new RO(fit);
+        observer.observe(d.documentElement);
+      }
+
+      // Forward the post page's #hash to the report: scroll to that section.
+      var id = hashId();
+      if (id && fitted) scrollToTarget(d, id);
+
+      // The iframe does not scroll itself, so handle in-page links in the parent,
+      // and open other links in the top window instead of inside the frame.
+      d.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href]');
+        if (!a) return;
+        var href = a.getAttribute('href');
+        if (href.charAt(0) === '#') {
+          e.preventDefault();
+          var target = href.slice(1);
+          try { target = decodeURIComponent(target); } catch (err) {}
+          scrollToTarget(d, target);
+        } else if (!a.target) {
+          a.target = '_top';
+        }
+      });
+    });
+
+    window.addEventListener('resize', fit);
+  })();
+</script>

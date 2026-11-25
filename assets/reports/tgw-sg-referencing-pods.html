@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transit Gateway Security Group Referencing with Security Groups for Pods</title>
+<meta name="description" content="I tested in the Seoul Region whether AWS Transit Gateway security group referencing works with Amazon EKS security groups for Pods (branch ENIs). In strict mode, a rule whose only source was the Pod security group allowed the connection; in standard mode with EXTERNALSNAT=false, the node security group decided instead.">
+<script>
+/* 첫 화면을 그리기 전에 언어와 테마를 정한다. 기본은 영어. ?lang=en|ko 가 localStorage보다 우선한다.
+   블로그 글 안에 iframe으로 들어가면(data-embedded) 제목, 날짜, 홈 링크, 테마 버튼을 숨기고
+   테마 버튼이 없으므로 항상 밝은 테마를 쓴다. */
+(function(){
+  var r=document.documentElement, q=null, l=null, t=null, emb=true;
+  try{emb=window.top!==window}catch(e){}
+  if(emb)r.setAttribute('data-embedded','');
+  try{q=new URLSearchParams(location.search).get('lang')}catch(e){}
+  try{l=localStorage.getItem('blog-lang');t=localStorage.getItem('blog-theme')}catch(e){}
+  var lang=(q==='en'||q==='ko')?q:(l==='ko'?'ko':'en');
+  r.setAttribute('data-lang',lang); r.setAttribute('lang',lang);
+  /* Embedded in the light blog theme, where the theme toggle is hidden: always light. */
+  if(emb)r.setAttribute('data-theme','light');
+  else if(t==='dark'||t==='light')r.setAttribute('data-theme',t);
+})();
+</script>
+<style>
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --ink:#15202b; --muted:#5a6774; --line:#d9e0e7; --soft:#eaf0f7; --code:#eef2f6;
+  --accent:#1d5bb8; --good:#1b7a4a; --warn:#946000; --bad:#bf3a30;
+  --good-bg:#e4f2ea; --warn-bg:#f7eedb; --bad-bg:#f8e5e3;
+  --f-body:"NanumSquareOTF_ac","NanumSquare_ac","NanumSquare","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"D2Coding","SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1319; --surface:#151c24; --ink:#e4e9ef; --muted:#98a4b0; --line:#2a3541; --soft:#1b2631; --code:#1d2732;
+    --accent:#86abff; --good:#5cc790; --warn:#e2aa48; --bad:#f17d73;
+    --good-bg:#15291e; --warn-bg:#2c2413; --bad-bg:#2f1b19; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1319; --surface:#151c24; --ink:#e4e9ef; --muted:#98a4b0; --line:#2a3541; --soft:#1b2631; --code:#1d2732;
+  --accent:#86abff; --good:#5cc790; --warn:#e2aa48; --bad:#f17d73;
+  --good-bg:#15291e; --warn-bg:#2c2413; --bad-bg:#2f1b19; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+a{color:var(--accent);text-decoration:none;text-underline-offset:3px}
+a:hover{text-decoration:underline}
+code{font-family:var(--f-mono);font-size:.9em;background:var(--code);padding:.1em .35em;border-radius:4px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px 64px}
+
+/* 언어 전환: html[data-lang]에 맞지 않는 쪽을 숨긴다. SVG의 text에도 같은 규칙이 적용된다. */
+html[data-lang="ko"] .l-en, html[data-lang="en"] .l-ko{display:none !important}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.home{font-weight:700;color:var(--ink)}
+.tog{display:flex;gap:8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:5px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface);font-weight:700}
+
+.masthead{padding:36px 0 24px;border-bottom:1px solid var(--line)}
+.meta-top{display:flex;gap:16px;color:var(--muted);font-size:13px;flex-wrap:wrap}
+h1{font-size:30px;line-height:1.35;margin:12px 0 16px}
+.thesis{font-size:16.5px;color:var(--ink);margin:0 0 16px}
+.tags{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}
+.tags span{font-size:12.5px;color:var(--muted);background:var(--soft);border-radius:999px;padding:2px 10px}
+.facts{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.facts li{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:10px 14px}
+
+.toc{display:flex;flex-direction:column;gap:4px;padding:20px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.toc-label{font-weight:700;color:var(--muted);font-size:13px;margin-bottom:4px}
+
+.sec{padding:32px 0 8px}
+.sec-head .eyebrow{margin:0;color:var(--accent);font-weight:700;font-size:13px;letter-spacing:.05em}
+h2{font-size:22px;line-height:1.4;margin:4px 0 14px}
+h3{font-size:17px;margin:22px 0 8px}
+.prose p{margin:0 0 14px}
+.prose ul{margin:0 0 14px;padding-left:22px}
+.prose li{margin:4px 0}
+
+.scroll{overflow-x:auto;margin:0 0 6px}
+table{border-collapse:collapse;width:100%;background:var(--surface);font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:700}
+.cap{font-size:13px;color:var(--muted);margin:6px 0 18px}
+.ok{color:var(--good);font-weight:700}
+.no{color:var(--bad);font-weight:700}
+
+.fig{margin:8px 0 6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.fig svg{display:block;width:100%;height:auto}
+.fig text{font-family:var(--f-body);fill:var(--ink)}
+.fig .muted{fill:var(--muted)}
+.fig .box{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.fig .zone{fill:var(--soft);stroke:var(--line);stroke-width:1.5}
+.fig .node{fill:var(--surface);stroke:var(--warn);stroke-width:2.5}
+.fig .pod-ok{fill:var(--good-bg);stroke:var(--good);stroke-width:2}
+.fig .pod-no{fill:var(--bad-bg);stroke:var(--bad);stroke-width:2;stroke-dasharray:6 4}
+.fig .tgw{fill:var(--soft);stroke:var(--accent);stroke-width:2}
+.fig .rule{fill:var(--code);stroke:var(--line);stroke-width:1.2}
+.fig .arrow-ok{stroke:var(--good);stroke-width:2.5;fill:none}
+.fig .arrow-no{stroke:var(--bad);stroke-width:2.5;fill:none;stroke-dasharray:7 5}
+.fig .arrow{stroke:var(--ink);stroke-width:2;fill:none}
+.fig .ah-ok{fill:var(--good)} .fig .ah-no{fill:var(--bad)} .fig .ah{fill:var(--ink)}
+.fig .t-ok{fill:var(--good);font-weight:700} .fig .t-no{fill:var(--bad);font-weight:700} .fig .t-acc{fill:var(--accent);font-weight:700}
+
+.snippet{margin:0 0 16px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code)}
+.snippet-bar{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.snippet-bar button{border:1px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;font-size:12px;border-radius:6px;padding:2px 8px;cursor:pointer}
+.snippet-bar button .done{display:none}
+.snippet-bar button.copied .i{display:none} .snippet-bar button.copied .done{display:inline}
+pre{margin:0;padding:12px 14px;overflow-x:auto;font-family:var(--f-mono);font-size:13px;line-height:1.55}
+pre code{background:none;padding:0}
+
+.note{background:var(--warn-bg);border-left:4px solid var(--warn);border-radius:6px;padding:10px 14px;margin:0 0 14px}
+.refs{font-size:14px}
+.refs li{margin:6px 0}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+@media (max-width:640px){h1{font-size:24px} h2{font-size:19px} .wrap{padding:0 16px 48px}}
+@media print{.top{display:none} body{background:#fff}}
+/* iframe 안: 블로그 글이 제목과 날짜를 보여 주므로 반복하지 않는다. 언어 버튼만 남긴다. */
+html[data-embedded] .top{justify-content:flex-end;border-bottom:0;padding:8px 0 0}
+html[data-embedded] .top .home, html[data-embedded] #themeSeg, html[data-embedded] .masthead h1, html[data-embedded] .meta-top{display:none}
+html[data-embedded] .masthead{padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top">
+  <a class="home" href="/"><span class="l-ko">기술 블로그 홈</span><span class="l-en">Tech blog home</span></a>
+  <div class="tog">
+    <div class="seg" id="langSeg"><button type="button" data-v="en">English</button><button type="button" data-v="ko">한국어</button></div>
+    <div class="seg" id="themeSeg"><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div>
+  </div>
+</nav>
+
+<header class="masthead">
+<div class="meta-top"><span><span class="l-ko">게시 2026-11-24</span><span class="l-en">Published 2026-11-24</span></span><span>Networking</span><span><span class="l-ko">읽는 시간 9분</span><span class="l-en">9 min read</span></span></div>
+<h1><span class="l-ko">Transit Gateway 보안 그룹 참조는 Pod 보안 그룹에서도 동작합니다</span><span class="l-en">Transit Gateway security group referencing works with security groups for Pods</span></h1>
+<p class="thesis"><span class="l-ko">AWS Transit Gateway(TGW)의 보안 그룹 참조 기능을 켜면 TGW로 연결된 다른 VPC의 보안 그룹을 인바운드 규칙의 출발지로 쓸 수 있습니다. 그런데 Amazon EKS의 Pod 보안 그룹(Security Groups for Pods)처럼 Pod 전용 branch ENI에 붙은 보안 그룹도 이렇게 참조되는지는 문서에 나와 있지 않습니다. 서울 리전에서 직접 테스트해 보니 strict 모드에서는 Pod 보안 그룹 하나만 출발지로 적은 규칙으로 TGW 너머의 접속이 허용됐습니다. standard 모드에 <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=false</code>를 쓰면 트래픽이 노드 IP로 바뀌어 노드 보안 그룹으로 판정됐습니다.</span><span class="l-en">With security group referencing turned on in AWS Transit Gateway (TGW), an inbound rule can name a security group from another VPC attached to the same TGW as its source. The documentation does not say whether this also works for a security group attached to a Pod's own branch ENI, which is how Amazon EKS security groups for Pods work. I tested it in the Seoul Region. In strict mode, a rule whose only source was the Pod security group allowed the connection across the TGW. In standard mode with <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=false</code>, the traffic left with the node IP and was judged by the node security group instead.</span></p>
+<div class="tags"><span>#Transit Gateway</span><span>#Security group referencing</span><span>#Amazon EKS</span><span>#Security groups for Pods</span><span>#Amazon VPC CNI</span><span>#VPC Flow Logs</span></div>
+<ul class="facts">
+<li><span class="l-ko"><b>Pod 단위 허용</b>: 대상 보안 그룹에 "8080, 출발지 = 다른 VPC의 Pod 보안 그룹" 규칙 하나만 넣었고 CIDR 규칙은 넣지 않았습니다. Pod 보안 그룹이 붙은 Pod는 HTTP 200을 받았고 Flow Logs에는 Pod IP가 ACCEPT로 남았습니다.</span><span class="l-en"><b>Per-Pod allow</b>: the target security group had one rule, "8080 from the Pod security group in the other VPC", and no CIDR rule. The Pod with that security group got HTTP 200, and Flow Logs recorded its Pod IP as ACCEPT.</span></li>
+<li><span class="l-ko"><b>대조군 두 개</b>: Pod 보안 그룹이 없는 Pod와, TGW attachment 한쪽의 보안 그룹 참조를 끈 경우는 모두 timeout과 REJECT였습니다. 허용이 CIDR이 아니라 보안 그룹 참조 덕분이라는 뜻입니다.</span><span class="l-en"><b>Two controls</b>: a Pod without the Pod security group, and the same Pod after turning off referencing on one TGW attachment, both timed out and were logged as REJECT. The allow came from the security group reference, not from a CIDR.</span></li>
+<li><span class="l-ko"><b>standard 모드 + EXTERNALSNAT=false</b>: 출발지가 노드 IP로 바뀌어 Pod 보안 그룹 규칙은 더 이상 맞지 않았습니다. 노드 보안 그룹 규칙을 넣으면 Pod 보안 그룹이 있든 없든 그 노드의 Pod가 모두 통과했습니다.</span><span class="l-en"><b>Standard mode with EXTERNALSNAT=false</b>: the source became the node IP, so the Pod security group rule no longer matched. With a node security group rule added, every Pod on that node passed, with or without the Pod security group.</span></li>
+</ul>
+</header>
+
+<nav class="toc l-en" aria-label="Contents"><span class="toc-label">Contents</span>
+<a href="#en-s1">Where security group referencing works, and the gap in the docs</a>
+<a href="#en-s2">One Pod security group was enough to allow traffic across the TGW</a>
+<a href="#en-s3">Test setup: two VPCs and one TGW</a>
+<a href="#en-s4">Settings for referencing and for security groups for Pods</a>
+<a href="#en-s5">curl results and Flow Logs for the three tests</a>
+<a href="#en-s6">Standard mode with EXTERNALSNAT=false falls back to the node security group</a>
+<a href="#en-s7">When to apply it and what to check first</a>
+<a href="#en-s8">Setups I did not test</a>
+<a href="#en-code">Test code</a>
+<a href="#en-refs">References</a>
+</nav>
+<nav class="toc l-ko" aria-label="목차"><span class="toc-label">목차</span>
+<a href="#ko-s1">보안 그룹 참조가 되는 범위와 문서에 없는 부분</a>
+<a href="#ko-s2">Pod 보안 그룹 하나로 TGW 너머 접속이 허용됐습니다</a>
+<a href="#ko-s3">VPC 두 개와 TGW 하나로 만든 테스트 구성</a>
+<a href="#ko-s4">보안 그룹 참조와 Pod 보안 그룹을 켜는 설정</a>
+<a href="#ko-s5">테스트 세 개의 curl 결과와 Flow Logs</a>
+<a href="#ko-s6">standard 모드와 EXTERNALSNAT=false에서는 노드 보안 그룹으로 판정됩니다</a>
+<a href="#ko-s7">적용할 조건과 적용 전에 확인할 항목</a>
+<a href="#ko-s8">테스트하지 않은 구성</a>
+<a href="#ko-code">테스트 코드</a>
+<a href="#ko-refs">참고 자료</a>
+</nav>
+
+<!-- ======================= EN ======================= -->
+<div class="l-en" lang="en">
+
+<section class="sec" id="en-s1"><header class="sec-head"><h2>Where security group referencing works, and the gap in the docs</h2></header><div class="prose">
+<p>A security group rule can name another security group ID as its source instead of a CIDR. Only traffic from network interfaces (ENIs) that carry that security group is allowed, so the rule keeps working when IP ranges change. How far the reference reaches depends on how the VPCs are connected.</p>
+<div class="scroll"><table>
+<thead><tr><th>Connection</th><th>Security group referencing</th></tr></thead>
+<tbody>
+<tr><td>Same VPC</td><td>No restrictions</td></tr>
+<tr><td>VPC peering</td><td>Same-Region peering only, in inbound and outbound rules</td></tr>
+<tr><td>Transit Gateway</td><td>Inbound rules only, after it is turned on for both the TGW and the VPC attachments. Only between VPCs attached to the same TGW. Not across TGW peering, not for PrivateLink endpoints, and not through a Gateway Load Balancer or AWS Network Firewall in an inspection VPC</td></tr>
+</tbody>
+</table></div>
+<p class="cap"><b>Table 1.</b> Reach of security group referencing by connection type (<a href="https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-security-groups.html" target="_blank" rel="noopener">VPC peering docs</a>, <a href="https://docs.aws.amazon.com/vpc/latest/tgw/tgw-vpc-attachments.html#vpc-attachment-security" target="_blank" rel="noopener">TGW VPC attachment docs</a>)</p>
+<p>Amazon EKS security groups for Pods create one branch ENI per Pod on top of the node's trunk ENI, and attach the security groups named in a <code>SecurityGroupPolicy</code> to that branch ENI. Pods on the same node can have different security groups, so you can open a database to specific workloads only.</p>
+<p>When the EKS cluster and the database sit in different VPCs connected by a TGW, being able to name the Pod security group as the source in the database security group would carry that per-Pod allow across the VPC boundary. Without it, you have to open the Pod or node range as a CIDR, and every other Pod in that range is allowed too. The TGW docs describe instance-to-instance traffic and say nothing about branch ENIs, so I tested it.</p>
+</div></section>
+
+<section class="sec" id="en-s2"><header class="sec-head"><p class="eyebrow">01</p><h2>One Pod security group was enough to allow traffic across the TGW</h2></header><div class="prose">
+<p>Pods in an EKS cluster in VPC A connected to port 8080 on an EC2 instance in VPC B. The target security group <code>sg-db</code> in VPC B had one rule: "8080 from <code>sg-pod</code>", where <code>sg-pod</code> is the Pod security group in VPC A.</p>
+<div class="scroll"><table>
+<thead><tr><th>Test</th><th>Source</th><th>What changed</th><th>curl</th><th>Flow Logs (source IP, action)</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Pod with <code>sg-pod</code> (branch ENI)</td><td>Nothing</td><td class="ok">HTTP 200</td><td>Pod IP, <span class="ok">ACCEPT</span></td></tr>
+<tr><td>2</td><td>Pod without a <code>SecurityGroupPolicy</code> (node security group)</td><td>Source Pod</td><td class="no">timeout</td><td>Pod IP, <span class="no">REJECT</span></td></tr>
+<tr><td>3</td><td>Same Pod as test 1</td><td>Referencing off on the VPC A attachment</td><td class="no">timeout</td><td>Pod IP, <span class="no">REJECT</span></td></tr>
+<tr><td>3 restored</td><td>Same Pod as test 1</td><td>Turned back on</td><td class="ok">HTTP 200</td><td>Pod IP, <span class="ok">ACCEPT</span></td></tr>
+<tr><td>4a</td><td>Pod with <code>sg-pod</code></td><td>Standard mode + EXTERNALSNAT=false</td><td class="no">timeout</td><td>Node IP, <span class="no">REJECT</span></td></tr>
+<tr><td>4b</td><td>Pods with and without the Pod security group</td><td>4a plus a node security group rule</td><td class="ok">HTTP 200 for both</td><td>Node IP, <span class="ok">ACCEPT</span></td></tr>
+</tbody>
+</table></div>
+<p class="cap"><b>Table 2.</b> Results. Seoul Region (ap-northeast-2), November 24, 2026, Kubernetes 1.35, Amazon VPC CNI EKS add-on</p>
+<p>Test 1 is the result that matters; tests 2 and 3 are controls. Test 2 shows that the same VPC and the same path are blocked without <code>sg-pod</code>. Test 3 shows that the allow depends on the TGW referencing feature. Flow Logs recorded the Pod IP rather than the node IP, so the traffic left the branch ENI without SNAT.</p>
+</div></section>
+
+<section class="sec" id="en-s3"><header class="sec-head"><p class="eyebrow">02</p><h2>Test setup: two VPCs and one TGW</h2></header><div class="prose">
+<p>I created 45 resources with Terraform in the Seoul Region of an empty account and deleted all of them after the tests. No instance had a public IP, and the EKS API endpoint was private only. I reached the cluster through an SSM session on the node.</p>
+<figure class="fig">
+<svg viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Test setup">
+<defs>
+<marker id="en-k1ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-ok"/></marker>
+<marker id="en-k1no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-no"/></marker>
+<marker id="en-k1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+</defs>
+<rect x="10" y="10" width="390" height="420" rx="12" class="zone"/>
+<text x="28" y="40" font-size="17" font-weight="700">VPC A 10.50.0.0/16</text>
+<text x="28" y="62" font-size="13" class="muted l-ko">EKS 1.35, strict 모드, EXTERNALSNAT=true</text>
+<text x="28" y="62" font-size="13" class="muted l-en">EKS 1.35, strict mode, EXTERNALSNAT=true</text>
+<rect x="30" y="80" width="240" height="320" rx="10" class="node"/>
+<text x="46" y="106" font-size="15" font-weight="700" class="l-ko">노드 m5.large (trunk ENI)</text>
+<text x="46" y="106" font-size="15" font-weight="700" class="l-en">Node m5.large (trunk ENI)</text>
+<rect x="46" y="122" width="208" height="108" rx="8" class="pod-ok"/>
+<text x="60" y="148" font-size="15" font-weight="700">with-sg Pod</text>
+<text x="60" y="172" font-size="13" class="l-ko">Pod 전용 branch ENI</text>
+<text x="60" y="172" font-size="13" class="l-en">Dedicated branch ENI</text>
+<text x="60" y="194" font-size="13" class="l-ko">보안 그룹: sg-pod + 클러스터 SG</text>
+<text x="60" y="194" font-size="13" class="l-en">SGs: sg-pod + cluster SG</text>
+<text x="60" y="216" font-size="13" class="t-ok l-ko">테스트 1, 3</text>
+<text x="60" y="216" font-size="13" class="t-ok l-en">Tests 1 and 3</text>
+<rect x="46" y="256" width="208" height="108" rx="8" class="pod-no"/>
+<text x="60" y="282" font-size="15" font-weight="700">no-sg Pod</text>
+<text x="60" y="306" font-size="13" class="l-ko">노드 ENI의 보조 IP</text>
+<text x="60" y="306" font-size="13" class="l-en">Secondary IP on node ENI</text>
+<text x="60" y="328" font-size="13" class="l-ko">보안 그룹: 노드 SG만</text>
+<text x="60" y="328" font-size="13" class="l-en">SG: node SG only</text>
+<text x="60" y="350" font-size="13" class="t-no l-ko">테스트 2</text>
+<text x="60" y="350" font-size="13" class="t-no l-en">Test 2</text>
+<rect x="294" y="196" width="92" height="64" rx="8" class="box"/>
+<text x="340" y="223" font-size="13" text-anchor="middle">TGW</text>
+<text x="340" y="242" font-size="13" text-anchor="middle">attach A</text>
+<text x="340" y="286" font-size="12.5" text-anchor="middle" class="t-acc l-ko">테스트 3에서</text>
+<text x="340" y="286" font-size="12.5" text-anchor="middle" class="t-acc l-en">Test 3 turns</text>
+<text x="340" y="304" font-size="12.5" text-anchor="middle" class="t-acc l-ko">참조 off</text>
+<text x="340" y="304" font-size="12.5" text-anchor="middle" class="t-acc l-en">referencing off</text>
+
+<rect x="416" y="186" width="128" height="84" rx="42" class="tgw"/>
+<text x="480" y="222" font-size="16" font-weight="700" text-anchor="middle">Transit Gateway</text>
+<text x="480" y="244" font-size="12.5" text-anchor="middle" class="l-ko">보안 그룹 참조 on</text>
+<text x="480" y="244" font-size="12.5" text-anchor="middle" class="l-en">SG referencing on</text>
+
+<rect x="560" y="10" width="390" height="420" rx="12" class="zone"/>
+<text x="578" y="40" font-size="17" font-weight="700">VPC B 10.60.0.0/16</text>
+<rect x="574" y="196" width="92" height="64" rx="8" class="box"/>
+<text x="620" y="223" font-size="13" text-anchor="middle">TGW</text>
+<text x="620" y="242" font-size="13" text-anchor="middle">attach B</text>
+<rect x="690" y="110" width="244" height="240" rx="10" class="node"/>
+<text x="706" y="136" font-size="15" font-weight="700" class="l-ko">EC2 t4g.nano :8080</text>
+<text x="706" y="136" font-size="15" font-weight="700" class="l-en">EC2 t4g.nano :8080</text>
+<rect x="706" y="152" width="212" height="132" rx="8" class="rule"/>
+<text x="720" y="176" font-size="14" font-weight="700" class="l-ko">sg-db 인바운드 규칙</text>
+<text x="720" y="176" font-size="14" font-weight="700" class="l-en">sg-db inbound rule</text>
+<text x="720" y="200" font-size="13" class="l-ko">TCP 8080, 출발지 = sg-pod</text>
+<text x="720" y="200" font-size="13" class="l-en">TCP 8080, source = sg-pod</text>
+<text x="720" y="220" font-size="12.5" class="muted l-ko">(VPC A의 보안 그룹 ID)</text>
+<text x="720" y="220" font-size="12.5" class="muted l-en">(security group ID in VPC A)</text>
+<text x="720" y="244" font-size="12.5" class="muted l-ko">CIDR 규칙 없음</text>
+<text x="720" y="244" font-size="12.5" class="muted l-en">no CIDR rule</text>
+<text x="720" y="270" font-size="12.5" class="muted">Flow Logs: subnet</text>
+<text x="706" y="314" font-size="13" class="t-ok l-ko">테스트 1: 허용</text>
+<text x="706" y="314" font-size="13" class="t-ok l-en">Test 1: allowed</text>
+<text x="706" y="336" font-size="13" class="t-no l-ko">테스트 2, 3: 차단</text>
+<text x="706" y="336" font-size="13" class="t-no l-en">Tests 2 and 3: blocked</text>
+
+<path d="M254 176 L292 214" class="arrow-ok" marker-end="url(#en-k1ok)"/>
+<path d="M254 310 L292 244" class="arrow-no" marker-end="url(#en-k1no)"/>
+<path d="M386 228 L414 228" class="arrow" marker-end="url(#en-k1)"/>
+<path d="M544 228 L572 228" class="arrow" marker-end="url(#en-k1)"/>
+<path d="M666 228 L688 228" class="arrow" marker-end="url(#en-k1)"/>
+<text x="480" y="320" font-size="12.5" text-anchor="middle" class="muted l-ko">응답은 보안 그룹이 연결 상태를 기억해 자동 허용</text>
+<text x="480" y="320" font-size="12.5" text-anchor="middle" class="muted l-en">Return traffic is allowed by connection tracking</text>
+</svg>
+</figure>
+<p class="cap"><b>Figure 1.</b> Test setup. Solid lines are paths expected to be allowed; dashed lines are paths expected to be blocked.</p>
+<div class="scroll"><table>
+<thead><tr><th>Component</th><th>Configuration</th></tr></thead>
+<tbody>
+<tr><td>VPC A</td><td>EKS 1.35 cluster, one m5.large managed node (AL2023). A Nitro instance that supports trunk ENIs. One NAT gateway for image pulls</td></tr>
+<tr><td>VPC CNI</td><td><code>ENABLE_POD_ENI=true</code>, <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=true</code>, <code>POD_SECURITY_GROUP_ENFORCING_MODE</code> not set (default strict)</td></tr>
+<tr><td><code>sg-pod</code></td><td>Attached to the with-sg Pod through a <code>SecurityGroupPolicy</code>. Outbound 8080 to the VPC B CIDR, written as a CIDR because TGW referencing does not work in outbound rules. The cluster security group is attached as well for DNS</td></tr>
+<tr><td>VPC B</td><td>One t4g.nano running <code>python3 -m http.server 8080</code>. VPC Flow Logs on the target subnet</td></tr>
+<tr><td><code>sg-db</code></td><td>Inbound 8080 from <code>sg-pod</code> only. No CIDR rule</td></tr>
+<tr><td>TGW</td><td>Attachments for VPC A and B. Referencing enabled on the TGW and both attachments. Each VPC route table sends the other VPC's CIDR to the TGW</td></tr>
+</tbody>
+</table></div>
+<p class="cap"><b>Table 3.</b> Components and configuration</p>
+</div></section>
+
+<section class="sec" id="en-s4"><header class="sec-head"><p class="eyebrow">03</p><h2>Settings for referencing and for security groups for Pods</h2></header><div class="prose">
+<p>On the TGW side, turn on referencing for the TGW and both attachments, then add the security group from the other VPC as the source in the target security group. The test used <code>security_group_referencing_support = "enable"</code> in Terraform. The CLI equivalent:</p>
+<div class="snippet"><div class="snippet-bar"><span>bash</span><button type="button" class="copy"><span class="i">Copy</span><span class="done">Copied</span></button></div><pre><code>aws ec2 modify-transit-gateway --transit-gateway-id $TGW_ID \
+  --options SecurityGroupReferencingSupport=enable
+
+aws ec2 modify-transit-gateway-vpc-attachment --transit-gateway-attachment-id $ATT_A \
+  --options SecurityGroupReferencingSupport=enable
+aws ec2 modify-transit-gateway-vpc-attachment --transit-gateway-attachment-id $ATT_B \
+  --options SecurityGroupReferencingSupport=enable
+
+# Allow sg-pod (VPC A) as the source in sg-db (VPC B)
+aws ec2 authorize-security-group-ingress --group-id $SG_DB \
+  --ip-permissions "IpProtocol=tcp,FromPort=8080,ToPort=8080,UserIdGroupPairs=[{GroupId=$SG_POD}]"</code></pre></div>
+<p>On the EKS side, set environment variables on the VPC CNI add-on and assign the Pod security group with a <code>SecurityGroupPolicy</code>. The cluster IAM role needs the <code>AmazonEKSVPCResourceController</code> policy.</p>
+<div class="snippet"><div class="snippet-bar"><span>json (vpc-cni configuration_values)</span><button type="button" class="copy"><span class="i">Copy</span><span class="done">Copied</span></button></div><pre><code>{
+  "env": {
+    "ENABLE_POD_ENI": "true",
+    "AWS_VPC_K8S_CNI_EXTERNALSNAT": "true"
+  }
+}</code></pre></div>
+<div class="snippet"><div class="snippet-bar"><span>yaml</span><button type="button" class="copy"><span class="i">Copy</span><span class="done">Copied</span></button></div><pre><code>apiVersion: vpcresources.k8s.aws/v1beta1
+kind: SecurityGroupPolicy
+metadata:
+  name: with-sg
+  namespace: sgref
+spec:
+  podSelector:
+    matchLabels:
+      app: with-sg
+  securityGroups:
+    groupIds:
+      - sg-pod-id        # sg-pod
+      - sg-cluster-id    # cluster security group (DNS)</code></pre></div>
+<p>To confirm that a Pod got a branch ENI, check its <code>vpc.amazonaws.com/pod-eni</code> annotation. The with-sg Pod had this annotation:</p>
+<div class="snippet"><div class="snippet-bar"><span>text</span><button type="button" class="copy"><span class="i">Copy</span><span class="done">Copied</span></button></div><pre><code>[{"eniId":"eni-0123456789abcdef0","privateIp":"10.50.1.67","vlanId":1,
+  "subnetCidr":"10.50.1.0/24","associationID":"trunk-assoc-xxxxxxxx"}]</code></pre></div>
+</div></section>
+
+<section class="sec" id="en-s5"><header class="sec-head"><p class="eyebrow">04</p><h2>curl results and Flow Logs for the three tests</h2></header><div class="prose">
+<p>Each Pod ran <code>curl -m 5 http://10.60.1.15:8080/</code>. An allowed connection returns HTTP 200 right away; a packet dropped by a security group times out after five seconds (exit code 28). For test 3, I set referencing on the VPC A attachment to <code>disable</code>, waited for the attachment to return to <code>available</code>, then waited another 60 seconds before connecting. Afterwards I set it back to <code>enable</code> and waited the same way.</p>
+<div class="snippet"><div class="snippet-bar"><span>text</span><button type="button" class="copy"><span class="i">Copy</span><span class="done">Copied</span></button></div><pre><code>pods: with-sg=10.50.1.67 (branch ENI)  no-sg=10.50.1.22  node=10.50.1.9
+05:27:09 test 1 (sg-pod, branch ENI)        OK (HTTP 200)
+05:27:10 test 2 (no SGPP, node SG)          FAIL (timeout)
+05:27:54 attachment A referencing disable
+         test 3                             FAIL (timeout)
+05:29:24 attachment A referencing enable
+         test 1 again                       OK (HTTP 200)</code></pre></div>
+<p>Filtering the Flow Logs for the target ENI in VPC B to port 8080 shows source IPs and actions that match the curl results.</p>
+<div class="snippet"><div class="snippet-bar"><span>text (VPC Flow Logs)</span><button type="button" class="copy"><span class="i">Copy</span><span class="done">Copied</span></button></div><pre><code>srcaddr      dstaddr     dstport  action  direction
+10.50.1.22   10.60.1.15  8080     REJECT  ingress   # test 2
+10.50.1.67   10.60.1.15  8080     ACCEPT  ingress   # test 1
+10.50.1.67   10.60.1.15  8080     REJECT  ingress   # test 3
+10.50.1.67   10.60.1.15  8080     ACCEPT  ingress   # test 1 after re-enable</code></pre></div>
+<p>Flow Logs also check the test's premise. If <code>srcaddr</code> had shown the node IP (<code>10.50.1.9</code>), the traffic would have been SNATed and judged by the node security group rather than the Pod security group. In all three tests it showed the Pod IP.</p>
+</div></section>
+
+<section class="sec" id="en-s6"><header class="sec-head"><p class="eyebrow">05</p><h2>Standard mode with EXTERNALSNAT=false falls back to the node security group</h2></header><div class="prose">
+<p><code>POD_SECURITY_GROUP_ENFORCING_MODE</code> controls how Pod security groups behave. According to the <a href="https://github.com/aws/amazon-vpc-cni-k8s#pod_security_group_enforcing_mode-v1110" target="_blank" rel="noopener">VPC CNI README</a>, in the default strict mode the Pod security group applies to all of the Pod's traffic. In standard mode, traffic to addresses outside the VPC follows the EXTERNALSNAT setting: with it enabled the traffic is not SNATed, and with it disabled the traffic is SNATed through the node's eth0 and only eth0's security group applies. The <a href="https://docs.aws.amazon.com/eks/latest/userguide/security-groups-for-pods.html" target="_blank" rel="noopener">EKS user guide</a> says the same: with <code>standard</code> and <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=false</code>, traffic to endpoints outside the VPC uses the node's security groups.</p>
+<p>VPC B is outside VPC A's CIDR, so standard mode with <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=false</code> means the Pod security group reference no longer matches. I checked this combination in the same environment. Existing Pods must be recreated after a mode change for the new behavior to apply.</p>
+<figure class="fig">
+<svg viewBox="0 0 960 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Strict mode compared with standard mode">
+<defs>
+<marker id="en-k2ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-ok"/></marker>
+<marker id="en-k2no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-no"/></marker>
+</defs>
+<text x="20" y="34" font-size="16" font-weight="700" class="l-ko">strict 모드 (테스트 1)</text>
+<text x="20" y="34" font-size="16" font-weight="700" class="l-en">Strict mode (test 1)</text>
+<rect x="20" y="50" width="200" height="80" rx="8" class="pod-ok"/>
+<text x="36" y="80" font-size="14" font-weight="700">with-sg Pod</text>
+<text x="36" y="104" font-size="13" class="l-ko">branch ENI, 출발지 Pod IP</text>
+<text x="36" y="104" font-size="13" class="l-en">branch ENI, source = Pod IP</text>
+<path d="M220 90 L560 90" class="arrow-ok" marker-end="url(#en-k2ok)"/>
+<text x="390" y="80" font-size="13" text-anchor="middle" class="l-ko">TGW (판정 기준: sg-pod)</text>
+<text x="390" y="80" font-size="13" text-anchor="middle" class="l-en">TGW (judged by sg-pod)</text>
+<rect x="562" y="50" width="380" height="80" rx="8" class="rule"/>
+<text x="578" y="80" font-size="14" font-weight="700">sg-db: 8080 ← sg-pod</text>
+<text x="578" y="106" font-size="13" class="t-ok l-ko">허용. Pod 단위 판정</text>
+<text x="578" y="106" font-size="13" class="t-ok l-en">Allowed. Judged per Pod</text>
+
+<text x="20" y="184" font-size="16" font-weight="700" class="l-ko">standard 모드 + EXTERNALSNAT=false (테스트 4)</text>
+<text x="20" y="184" font-size="16" font-weight="700" class="l-en">Standard mode + EXTERNALSNAT=false (test 4)</text>
+<rect x="20" y="200" width="200" height="80" rx="8" class="node"/>
+<text x="36" y="230" font-size="14" font-weight="700" class="l-ko">노드 eth0로 SNAT</text>
+<text x="36" y="230" font-size="14" font-weight="700" class="l-en">SNAT to node eth0</text>
+<text x="36" y="254" font-size="13" class="l-ko">출발지 노드 IP</text>
+<text x="36" y="254" font-size="13" class="l-en">source = node IP</text>
+<path d="M220 240 L560 240" class="arrow-no" marker-end="url(#en-k2no)"/>
+<text x="390" y="230" font-size="13" text-anchor="middle" class="l-ko">TGW (판정 기준: 노드 SG)</text>
+<text x="390" y="230" font-size="13" text-anchor="middle" class="l-en">TGW (judged by node SG)</text>
+<rect x="562" y="200" width="380" height="80" rx="8" class="rule"/>
+<text x="578" y="228" font-size="13" class="t-no l-ko">4a. sg-pod 규칙만 있으면 차단</text>
+<text x="578" y="228" font-size="13" class="t-no l-en">4a. Blocked with the sg-pod rule only</text>
+<text x="578" y="254" font-size="13" class="t-ok l-ko">4b. 노드 SG 규칙을 넣으면 노드의 Pod 모두 허용</text>
+<text x="578" y="254" font-size="13" class="t-ok l-en">4b. With a node SG rule, every Pod on the node passes</text>
+</svg>
+</figure>
+<p class="cap"><b>Figure 2.</b> The source the target security group sees depends on the mode.</p>
+<div class="snippet"><div class="snippet-bar"><span>text</span><button type="button" class="copy"><span class="i">Copy</span><span class="done">Copied</span></button></div><pre><code>aws-node env: POD_SECURITY_GROUP_ENFORCING_MODE=standard  AWS_VPC_K8S_CNI_EXTERNALSNAT=false
+06:30:20 4a  sg-db allows sg-pod only     with-sg FAIL (timeout)
+06:30:43 4b  sg-db also allows node SG    with-sg OK (HTTP 200)  no-sg OK (HTTP 200)
+
+srcaddr      dstaddr     dstport  action
+10.50.1.9    10.60.1.15  8080     REJECT   # 4a
+10.50.1.9    10.60.1.15  8080     ACCEPT   # 4b with-sg
+10.50.1.9    10.60.1.15  8080     ACCEPT   # 4b no-sg</code></pre></div>
+<p>In 4b the node security group reference worked as expected. The node's primary ENI is a regular ENI, which is within what the TGW docs describe. But the decision is now per node: other Pods on the same node and hostNetwork DaemonSets are allowed too. To limit access to a specific workload in this setup, run that workload on its own node group and reference a security group that only those nodes carry.</p>
+</div></section>
+
+<section class="sec" id="en-s7"><header class="sec-head"><p class="eyebrow">06</p><h2>When to apply it and what to check first</h2></header><div class="prose">
+<p>To allow a target in another TGW-connected VPC (a database, for example) per Pod, all of these must hold.</p>
+<ul>
+<li><b>Both the TGW and both attachments</b> have referencing turned on. It is off by default at the TGW level, including TGWs created before the feature existed (<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-for-aws-transit-gateway/" target="_blank" rel="noopener">launch post</a>). If one side is off, traffic that relies only on the reference is dropped, as in test 3. When replacing CIDR rules with references, keep the CIDR rules in place until you have confirmed the new rule works.</li>
+<li><b>Inbound rules only.</b> Write the Pod security group's outbound rules with the other VPC's CIDR or a prefix list.</li>
+<li><b>The Pod IP reaches the target unchanged.</b> The combination I confirmed is strict mode with <code>EXTERNALSNAT=true</code>. Check first that <code>srcaddr</code> in the Flow Logs for the target ENI is the Pod IP.</li>
+<li><b>No inspection appliance on the path.</b> The TGW docs say referencing does not work across a Gateway Load Balancer or Network Firewall in an inspection VPC. An AWS blog post says you cannot use referencing when more specific routing in a VPC sends traffic between subnets through a Gateway Load Balancer or Network Firewall for inspection (<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/automated-vpc-prefix-list-population-for-cross-region-and-in-region-security-group-referencing/" target="_blank" rel="noopener">prefix list post</a>). The Cloud WAN launch post says it doesn't work when Network Firewall or a third-party appliance inspects the traffic (<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-and-enhanced-dns-support-for-aws-cloud-wan/" target="_blank" rel="noopener">Cloud WAN post</a>). Allow such paths with a CIDR or prefix list.</li>
+<li><b>The same TGW</b> connects both VPCs. Paths across TGW peering and PrivateLink endpoints are not supported.</li>
+</ul>
+<p>You still need TGW and VPC routes and network ACL entries in both directions. The reference only covers the security group decision.</p>
+</div></section>
+
+<section class="sec" id="en-s8"><header class="sec-head"><p class="eyebrow">07</p><h2>Setups I did not test</h2></header><div class="prose">
+<p>The test used one account, one Region, one node, and one target. I did not check:</p>
+<ul>
+<li>A Network Firewall or Gateway Load Balancer on the path. I did not reproduce what the docs and blog posts describe.</li>
+<li>VPC A and VPC B in different accounts</li>
+<li>Referencing a branch ENI security group over same-Region VPC peering</li>
+<li>Nodes and targets spread across several Availability Zones</li>
+<li>Strict mode with <code>EXTERNALSNAT=false</code>. The EKS user guide says strict mode turns off source NAT for Pods with security groups, so I expect the same result as test 1, but I did not run it.</li>
+<li>Standard mode with <code>EXTERNALSNAT=true</code></li>
+<li>IPv6 clusters, Fargate, and nodes launched by Karpenter</li>
+<li>How long a referencing change takes to apply. Test 3 waited 60 seconds after the attachment became <code>available</code>, so I did not measure it.</li>
+</ul>
+</div></section>
+
+<section class="sec" id="en-code"><header class="sec-head"><h2>Test code</h2></header><div class="prose">
+<p>The Terraform configuration and scripts that produced these results are in the blog repository under <a href="https://github.com/blackdog0403/blackdog0403.github.io/tree/master/demos/tgw-sg-referencing-pods" target="_blank" rel="noopener">demos/tgw-sg-referencing-pods</a>. They create billable resources (an EKS control plane, a NAT gateway, TGW attachments, and two instances), so run <code>terraform destroy</code> when you are done.</p>
+</div></section>
+
+<section class="sec" id="en-refs"><header class="sec-head"><h2>References</h2></header><div class="prose">
+<ol class="refs">
+<li><a href="https://docs.aws.amazon.com/vpc/latest/tgw/tgw-vpc-attachments.html#vpc-attachment-security" target="_blank" rel="noopener">Amazon VPC attachments in AWS Transit Gateway: Security group referencing</a></li>
+<li><a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-for-aws-transit-gateway/" target="_blank" rel="noopener">Introducing security group referencing for AWS Transit Gateway</a></li>
+<li><a href="https://aws.amazon.com/blogs/networking-and-content-delivery/automated-vpc-prefix-list-population-for-cross-region-and-in-region-security-group-referencing/" target="_blank" rel="noopener">Automated VPC prefix list population for cross-Region and in-Region security group referencing</a></li>
+<li><a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-and-enhanced-dns-support-for-aws-cloud-wan/" target="_blank" rel="noopener">Introducing security group referencing and enhanced DNS support for AWS Cloud WAN</a></li>
+<li><a href="https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-security-groups.html" target="_blank" rel="noopener">Update your security groups to reference peer security groups</a></li>
+<li><a href="https://docs.aws.amazon.com/eks/latest/userguide/security-groups-for-pods.html" target="_blank" rel="noopener">Amazon EKS: Assign security groups to individual Pods</a></li>
+<li><a href="https://github.com/aws/amazon-vpc-cni-k8s#pod_security_group_enforcing_mode-v1110" target="_blank" rel="noopener">Amazon VPC CNI: POD_SECURITY_GROUP_ENFORCING_MODE</a></li>
+</ol>
+</div></section>
+</div>
+
+<!-- ======================= KO ======================= -->
+<div class="l-ko" lang="ko">
+
+<section class="sec" id="ko-s1"><header class="sec-head"><h2>보안 그룹 참조가 되는 범위와 문서에 없는 부분</h2></header><div class="prose">
+<p>보안 그룹 규칙의 출발지에는 CIDR 대신 다른 보안 그룹 ID를 적을 수 있습니다. 그 보안 그룹이 붙은 네트워크 인터페이스(ENI)에서 오는 트래픽만 허용하므로, IP 대역이 바뀌어도 규칙을 고칠 필요가 없습니다. 이 참조가 되는 범위는 연결 방식마다 다릅니다.</p>
+<div class="scroll"><table>
+<thead><tr><th>연결 방식</th><th>보안 그룹 참조</th></tr></thead>
+<tbody>
+<tr><td>같은 VPC</td><td>제한 없음</td></tr>
+<tr><td>VPC 피어링</td><td>같은 리전의 피어링에서만, 인바운드와 아웃바운드 모두</td></tr>
+<tr><td>Transit Gateway</td><td>TGW와 VPC attachment 양쪽에서 켰을 때 인바운드만. 같은 TGW에 붙은 VPC끼리만 되고 TGW 피어링, PrivateLink 엔드포인트, 검사용 VPC의 Gateway Load Balancer나 AWS Network Firewall을 거치는 경로에서는 되지 않음</td></tr>
+</tbody>
+</table></div>
+<p class="cap"><b>표 1.</b> 연결 방식별 보안 그룹 참조 범위 (<a href="https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-security-groups.html" target="_blank" rel="noopener">VPC 피어링 문서</a>, <a href="https://docs.aws.amazon.com/vpc/latest/tgw/tgw-vpc-attachments.html#vpc-attachment-security" target="_blank" rel="noopener">TGW VPC attachment 문서</a>)</p>
+<p>Amazon EKS의 Pod 보안 그룹은 노드의 trunk ENI 위에 Pod마다 branch ENI를 하나씩 만들고, <code>SecurityGroupPolicy</code>로 지정한 보안 그룹을 그 branch ENI에 붙입니다. 같은 노드의 Pod라도 서로 다른 보안 그룹을 가질 수 있어서, 데이터베이스 접근을 특정 워크로드에만 열 수 있습니다.</p>
+<p>EKS 클러스터와 데이터베이스가 서로 다른 VPC에 있고 TGW로 연결된 경우, 데이터베이스 보안 그룹에 Pod 보안 그룹을 출발지로 적을 수 있으면 Pod 단위 허용을 VPC 경계 너머에서도 그대로 쓸 수 있습니다. 그렇지 않으면 Pod 대역이나 노드 대역을 CIDR로 열어야 하고, 같은 대역의 다른 Pod도 함께 허용됩니다. TGW 문서는 인스턴스 간 트래픽을 기준으로 설명할 뿐 branch ENI에 대한 언급이 없어서, 이 부분을 직접 확인했습니다.</p>
+</div></section>
+
+<section class="sec" id="ko-s2"><header class="sec-head"><p class="eyebrow">01</p><h2>Pod 보안 그룹 하나로 TGW 너머 접속이 허용됐습니다</h2></header><div class="prose">
+<p>VPC A의 EKS 클러스터에서 VPC B의 EC2 8080 포트로 접속했습니다. VPC B의 대상 보안 그룹 <code>sg-db</code>에는 "8080, 출발지 = <code>sg-pod</code>" 규칙 하나만 두었습니다. <code>sg-pod</code>는 VPC A에 있는 Pod 보안 그룹입니다.</p>
+<div class="scroll"><table>
+<thead><tr><th>테스트</th><th>출발지</th><th>바꾼 것</th><th>curl</th><th>Flow Logs (출발지 IP, 결과)</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>sg-pod</code>가 붙은 Pod (branch ENI)</td><td>없음</td><td class="ok">HTTP 200</td><td>Pod IP, <span class="ok">ACCEPT</span></td></tr>
+<tr><td>2</td><td><code>SecurityGroupPolicy</code>가 없는 Pod (노드 보안 그룹)</td><td>출발지 Pod</td><td class="no">timeout</td><td>Pod IP, <span class="no">REJECT</span></td></tr>
+<tr><td>3</td><td>테스트 1과 같은 Pod</td><td>VPC A attachment의 보안 그룹 참조 off</td><td class="no">timeout</td><td>Pod IP, <span class="no">REJECT</span></td></tr>
+<tr><td>3 복구</td><td>테스트 1과 같은 Pod</td><td>다시 on</td><td class="ok">HTTP 200</td><td>Pod IP, <span class="ok">ACCEPT</span></td></tr>
+<tr><td>4a</td><td><code>sg-pod</code>가 붙은 Pod</td><td>standard 모드 + EXTERNALSNAT=false</td><td class="no">timeout</td><td>노드 IP, <span class="no">REJECT</span></td></tr>
+<tr><td>4b</td><td>Pod 보안 그룹이 있는 Pod와 없는 Pod</td><td>4a에 노드 보안 그룹 규칙 추가</td><td class="ok">둘 다 HTTP 200</td><td>노드 IP, <span class="ok">ACCEPT</span></td></tr>
+</tbody>
+</table></div>
+<p class="cap"><b>표 2.</b> 주요 결과. 2026년 11월 24일 서울 리전(ap-northeast-2), Kubernetes 1.35, Amazon VPC CNI EKS 애드온</p>
+<p>테스트 1이 핵심 결과이고 2와 3은 대조군입니다. 2는 같은 VPC, 같은 경로라도 <code>sg-pod</code>가 없으면 막힌다는 것을, 3은 허용이 TGW의 보안 그룹 참조 기능 덕분이라는 것을 보여 줍니다. Flow Logs의 출발지가 노드 IP가 아니라 Pod IP였으므로, 트래픽은 SNAT 없이 branch ENI에서 그대로 나갔습니다.</p>
+</div></section>
+
+<section class="sec" id="ko-s3"><header class="sec-head"><p class="eyebrow">02</p><h2>VPC 두 개와 TGW 하나로 만든 테스트 구성</h2></header><div class="prose">
+<p>빈 계정 하나의 서울 리전에 Terraform으로 리소스 45개를 만들고, 테스트가 끝난 뒤 모두 지웠습니다. 인스턴스에는 공인 IP를 주지 않았고 EKS API 엔드포인트는 프라이빗 전용으로 두었습니다. 클러스터에는 노드의 SSM 세션을 거쳐 접속했습니다.</p>
+<figure class="fig">
+<svg viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="테스트 구성">
+<defs>
+<marker id="k1ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-ok"/></marker>
+<marker id="k1no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-no"/></marker>
+<marker id="k1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+</defs>
+<rect x="10" y="10" width="390" height="420" rx="12" class="zone"/>
+<text x="28" y="40" font-size="17" font-weight="700">VPC A 10.50.0.0/16</text>
+<text x="28" y="62" font-size="13" class="muted l-ko">EKS 1.35, strict 모드, EXTERNALSNAT=true</text>
+<text x="28" y="62" font-size="13" class="muted l-en">EKS 1.35, strict mode, EXTERNALSNAT=true</text>
+<rect x="30" y="80" width="240" height="320" rx="10" class="node"/>
+<text x="46" y="106" font-size="15" font-weight="700" class="l-ko">노드 m5.large (trunk ENI)</text>
+<text x="46" y="106" font-size="15" font-weight="700" class="l-en">Node m5.large (trunk ENI)</text>
+<rect x="46" y="122" width="208" height="108" rx="8" class="pod-ok"/>
+<text x="60" y="148" font-size="15" font-weight="700">with-sg Pod</text>
+<text x="60" y="172" font-size="13" class="l-ko">Pod 전용 branch ENI</text>
+<text x="60" y="172" font-size="13" class="l-en">Dedicated branch ENI</text>
+<text x="60" y="194" font-size="13" class="l-ko">보안 그룹: sg-pod + 클러스터 SG</text>
+<text x="60" y="194" font-size="13" class="l-en">SGs: sg-pod + cluster SG</text>
+<text x="60" y="216" font-size="13" class="t-ok l-ko">테스트 1, 3</text>
+<text x="60" y="216" font-size="13" class="t-ok l-en">Tests 1 and 3</text>
+<rect x="46" y="256" width="208" height="108" rx="8" class="pod-no"/>
+<text x="60" y="282" font-size="15" font-weight="700">no-sg Pod</text>
+<text x="60" y="306" font-size="13" class="l-ko">노드 ENI의 보조 IP</text>
+<text x="60" y="306" font-size="13" class="l-en">Secondary IP on node ENI</text>
+<text x="60" y="328" font-size="13" class="l-ko">보안 그룹: 노드 SG만</text>
+<text x="60" y="328" font-size="13" class="l-en">SG: node SG only</text>
+<text x="60" y="350" font-size="13" class="t-no l-ko">테스트 2</text>
+<text x="60" y="350" font-size="13" class="t-no l-en">Test 2</text>
+<rect x="294" y="196" width="92" height="64" rx="8" class="box"/>
+<text x="340" y="223" font-size="13" text-anchor="middle">TGW</text>
+<text x="340" y="242" font-size="13" text-anchor="middle">attach A</text>
+<text x="340" y="286" font-size="12.5" text-anchor="middle" class="t-acc l-ko">테스트 3에서</text>
+<text x="340" y="286" font-size="12.5" text-anchor="middle" class="t-acc l-en">Test 3 turns</text>
+<text x="340" y="304" font-size="12.5" text-anchor="middle" class="t-acc l-ko">참조 off</text>
+<text x="340" y="304" font-size="12.5" text-anchor="middle" class="t-acc l-en">referencing off</text>
+
+<rect x="416" y="186" width="128" height="84" rx="42" class="tgw"/>
+<text x="480" y="222" font-size="16" font-weight="700" text-anchor="middle">Transit Gateway</text>
+<text x="480" y="244" font-size="12.5" text-anchor="middle" class="l-ko">보안 그룹 참조 on</text>
+<text x="480" y="244" font-size="12.5" text-anchor="middle" class="l-en">SG referencing on</text>
+
+<rect x="560" y="10" width="390" height="420" rx="12" class="zone"/>
+<text x="578" y="40" font-size="17" font-weight="700">VPC B 10.60.0.0/16</text>
+<rect x="574" y="196" width="92" height="64" rx="8" class="box"/>
+<text x="620" y="223" font-size="13" text-anchor="middle">TGW</text>
+<text x="620" y="242" font-size="13" text-anchor="middle">attach B</text>
+<rect x="690" y="110" width="244" height="240" rx="10" class="node"/>
+<text x="706" y="136" font-size="15" font-weight="700" class="l-ko">EC2 t4g.nano :8080</text>
+<text x="706" y="136" font-size="15" font-weight="700" class="l-en">EC2 t4g.nano :8080</text>
+<rect x="706" y="152" width="212" height="132" rx="8" class="rule"/>
+<text x="720" y="176" font-size="14" font-weight="700" class="l-ko">sg-db 인바운드 규칙</text>
+<text x="720" y="176" font-size="14" font-weight="700" class="l-en">sg-db inbound rule</text>
+<text x="720" y="200" font-size="13" class="l-ko">TCP 8080, 출발지 = sg-pod</text>
+<text x="720" y="200" font-size="13" class="l-en">TCP 8080, source = sg-pod</text>
+<text x="720" y="220" font-size="12.5" class="muted l-ko">(VPC A의 보안 그룹 ID)</text>
+<text x="720" y="220" font-size="12.5" class="muted l-en">(security group ID in VPC A)</text>
+<text x="720" y="244" font-size="12.5" class="muted l-ko">CIDR 규칙 없음</text>
+<text x="720" y="244" font-size="12.5" class="muted l-en">no CIDR rule</text>
+<text x="720" y="270" font-size="12.5" class="muted">Flow Logs: subnet</text>
+<text x="706" y="314" font-size="13" class="t-ok l-ko">테스트 1: 허용</text>
+<text x="706" y="314" font-size="13" class="t-ok l-en">Test 1: allowed</text>
+<text x="706" y="336" font-size="13" class="t-no l-ko">테스트 2, 3: 차단</text>
+<text x="706" y="336" font-size="13" class="t-no l-en">Tests 2 and 3: blocked</text>
+
+<path d="M254 176 L292 214" class="arrow-ok" marker-end="url(#k1ok)"/>
+<path d="M254 310 L292 244" class="arrow-no" marker-end="url(#k1no)"/>
+<path d="M386 228 L414 228" class="arrow" marker-end="url(#k1)"/>
+<path d="M544 228 L572 228" class="arrow" marker-end="url(#k1)"/>
+<path d="M666 228 L688 228" class="arrow" marker-end="url(#k1)"/>
+<text x="480" y="320" font-size="12.5" text-anchor="middle" class="muted l-ko">응답은 보안 그룹이 연결 상태를 기억해 자동 허용</text>
+<text x="480" y="320" font-size="12.5" text-anchor="middle" class="muted l-en">Return traffic is allowed by connection tracking</text>
+</svg>
+</figure>
+<p class="cap"><b>그림 1.</b> 테스트 구성. 실선은 허용될 것으로 예상한 경로, 점선은 차단될 것으로 예상한 경로입니다.</p>
+<div class="scroll"><table>
+<thead><tr><th>구성 요소</th><th>설정</th></tr></thead>
+<tbody>
+<tr><td>VPC A</td><td>EKS 1.35 클러스터, 관리형 노드 그룹 m5.large 1대(AL2023). trunk ENI를 지원하는 Nitro 인스턴스. 이미지를 받기 위한 NAT 게이트웨이 1개</td></tr>
+<tr><td>VPC CNI</td><td><code>ENABLE_POD_ENI=true</code>, <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=true</code>, <code>POD_SECURITY_GROUP_ENFORCING_MODE</code>는 지정하지 않음(기본값 strict)</td></tr>
+<tr><td><code>sg-pod</code></td><td><code>SecurityGroupPolicy</code>로 with-sg Pod에 붙임. 아웃바운드는 VPC B CIDR로 8080. TGW에서는 아웃바운드 규칙에 보안 그룹을 참조할 수 없어서 CIDR로 적음. DNS를 위해 클러스터 보안 그룹도 함께 붙임</td></tr>
+<tr><td>VPC B</td><td>t4g.nano 1대에서 <code>python3 -m http.server 8080</code>. 대상 서브넷에 VPC Flow Logs</td></tr>
+<tr><td><code>sg-db</code></td><td>인바운드 8080, 출발지는 <code>sg-pod</code> 하나. CIDR 규칙 없음</td></tr>
+<tr><td>TGW</td><td>VPC A와 B attachment. TGW와 두 attachment 모두 보안 그룹 참조 enable. 양쪽 라우팅 테이블에 상대 VPC CIDR → TGW</td></tr>
+</tbody>
+</table></div>
+<p class="cap"><b>표 3.</b> 구성 요소와 설정</p>
+</div></section>
+
+<section class="sec" id="ko-s4"><header class="sec-head"><p class="eyebrow">03</p><h2>보안 그룹 참조와 Pod 보안 그룹을 켜는 설정</h2></header><div class="prose">
+<p>TGW 쪽은 TGW와 양쪽 attachment에서 보안 그룹 참조를 켜고, 대상 보안 그룹에 다른 VPC의 보안 그룹을 출발지로 넣습니다. 테스트에서는 Terraform의 <code>security_group_referencing_support = "enable"</code>로 만들었고, CLI로는 다음과 같습니다.</p>
+<div class="snippet"><div class="snippet-bar"><span>bash</span><button type="button" class="copy"><span class="i">복사</span><span class="done">복사됨</span></button></div><pre><code>aws ec2 modify-transit-gateway --transit-gateway-id $TGW_ID \
+  --options SecurityGroupReferencingSupport=enable
+
+aws ec2 modify-transit-gateway-vpc-attachment --transit-gateway-attachment-id $ATT_A \
+  --options SecurityGroupReferencingSupport=enable
+aws ec2 modify-transit-gateway-vpc-attachment --transit-gateway-attachment-id $ATT_B \
+  --options SecurityGroupReferencingSupport=enable
+
+# VPC B의 sg-db에 VPC A의 sg-pod를 출발지로 넣는다
+aws ec2 authorize-security-group-ingress --group-id $SG_DB \
+  --ip-permissions "IpProtocol=tcp,FromPort=8080,ToPort=8080,UserIdGroupPairs=[{GroupId=$SG_POD}]"</code></pre></div>
+<p>EKS 쪽은 VPC CNI 애드온에 환경 변수를 넣고, Pod 보안 그룹을 <code>SecurityGroupPolicy</code>로 지정합니다. 클러스터 IAM 역할에는 <code>AmazonEKSVPCResourceController</code> 정책이 필요합니다.</p>
+<div class="snippet"><div class="snippet-bar"><span>json (vpc-cni configuration_values)</span><button type="button" class="copy"><span class="i">복사</span><span class="done">복사됨</span></button></div><pre><code>{
+  "env": {
+    "ENABLE_POD_ENI": "true",
+    "AWS_VPC_K8S_CNI_EXTERNALSNAT": "true"
+  }
+}</code></pre></div>
+<div class="snippet"><div class="snippet-bar"><span>yaml</span><button type="button" class="copy"><span class="i">복사</span><span class="done">복사됨</span></button></div><pre><code>apiVersion: vpcresources.k8s.aws/v1beta1
+kind: SecurityGroupPolicy
+metadata:
+  name: with-sg
+  namespace: sgref
+spec:
+  podSelector:
+    matchLabels:
+      app: with-sg
+  securityGroups:
+    groupIds:
+      - sg-pod-id        # sg-pod
+      - sg-cluster-id    # 클러스터 보안 그룹 (DNS)</code></pre></div>
+<p>Pod가 실제로 branch ENI를 받았는지는 Pod의 <code>vpc.amazonaws.com/pod-eni</code> 주석으로 확인합니다. 테스트에서 with-sg Pod에는 다음 주석이 달렸습니다.</p>
+<div class="snippet"><div class="snippet-bar"><span>text</span><button type="button" class="copy"><span class="i">복사</span><span class="done">복사됨</span></button></div><pre><code>[{"eniId":"eni-0123456789abcdef0","privateIp":"10.50.1.67","vlanId":1,
+  "subnetCidr":"10.50.1.0/24","associationID":"trunk-assoc-xxxxxxxx"}]</code></pre></div>
+</div></section>
+
+<section class="sec" id="ko-s5"><header class="sec-head"><p class="eyebrow">04</p><h2>테스트 세 개의 curl 결과와 Flow Logs</h2></header><div class="prose">
+<p>각 Pod에서 <code>curl -m 5 http://10.60.1.15:8080/</code>을 실행했습니다. 허용되면 바로 HTTP 200이 오고, 보안 그룹이 패킷을 버리면 5초 뒤 timeout(종료 코드 28)이 납니다. 테스트 3에서는 VPC A attachment의 보안 그룹 참조를 <code>disable</code>로 바꾸고 attachment가 <code>available</code>로 돌아온 뒤 60초를 기다렸다가 접속했습니다. 끝난 뒤 다시 <code>enable</code>로 바꾸고 같은 방법으로 기다렸습니다.</p>
+<div class="snippet"><div class="snippet-bar"><span>text</span><button type="button" class="copy"><span class="i">복사</span><span class="done">복사됨</span></button></div><pre><code>pods: with-sg=10.50.1.67 (branch ENI)  no-sg=10.50.1.22  node=10.50.1.9
+05:27:09 test 1 (sg-pod, branch ENI)        OK (HTTP 200)
+05:27:10 test 2 (no SGPP, node SG)          FAIL (timeout)
+05:27:54 attachment A referencing disable
+         test 3                             FAIL (timeout)
+05:29:24 attachment A referencing enable
+         test 1 again                       OK (HTTP 200)</code></pre></div>
+<p>VPC B 대상 ENI에 대한 Flow Logs에서 8080 포트만 골라 보면 출발지 IP와 판정이 curl 결과와 일치합니다.</p>
+<div class="snippet"><div class="snippet-bar"><span>text (VPC Flow Logs)</span><button type="button" class="copy"><span class="i">복사</span><span class="done">복사됨</span></button></div><pre><code>srcaddr      dstaddr     dstport  action  direction
+10.50.1.22   10.60.1.15  8080     REJECT  ingress   # test 2
+10.50.1.67   10.60.1.15  8080     ACCEPT  ingress   # test 1
+10.50.1.67   10.60.1.15  8080     REJECT  ingress   # test 3
+10.50.1.67   10.60.1.15  8080     ACCEPT  ingress   # test 1 after re-enable</code></pre></div>
+<p>Flow Logs는 테스트 전제를 확인하는 데도 씁니다. <code>srcaddr</code>가 노드 IP(<code>10.50.1.9</code>)로 찍혔다면 SNAT가 일어난 것이고, 그때는 Pod 보안 그룹이 아니라 노드 보안 그룹으로 판정됩니다. 이번에는 세 테스트 모두 Pod IP로 찍혔습니다.</p>
+</div></section>
+
+<section class="sec" id="ko-s6"><header class="sec-head"><p class="eyebrow">05</p><h2>standard 모드와 EXTERNALSNAT=false에서는 노드 보안 그룹으로 판정됩니다</h2></header><div class="prose">
+<p>Pod 보안 그룹의 동작 방식은 <code>POD_SECURITY_GROUP_ENFORCING_MODE</code>로 정합니다. <a href="https://github.com/aws/amazon-vpc-cni-k8s#pod_security_group_enforcing_mode-v1110" target="_blank" rel="noopener">VPC CNI README</a>에 따르면 기본값인 strict 모드에서는 Pod의 모든 트래픽에 Pod 보안 그룹이 적용됩니다. standard 모드에서 VPC 밖으로 나가는 트래픽은 EXTERNALSNAT 설정을 따릅니다. EXTERNALSNAT가 켜져 있으면 SNAT 없이 나가고, 꺼져 있으면 노드의 eth0으로 SNAT되어 eth0의 보안 그룹만 적용됩니다. <a href="https://docs.aws.amazon.com/eks/latest/userguide/security-groups-for-pods.html" target="_blank" rel="noopener">EKS 사용 설명서</a>도 <code>standard</code>와 <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=false</code>에서는 VPC 밖으로 가는 트래픽에 노드의 보안 그룹이 쓰인다고 설명합니다.</p>
+<p>VPC B는 VPC A의 CIDR 밖이므로, standard 모드에 <code>AWS_VPC_K8S_CNI_EXTERNALSNAT=false</code>를 쓰면 Pod 보안 그룹 참조가 맞지 않게 됩니다. 이 조합도 같은 환경에서 확인했습니다. 모드를 바꾼 뒤에는 기존 Pod를 다시 만들어야 새 동작이 적용됩니다.</p>
+<figure class="fig">
+<svg viewBox="0 0 960 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="strict 모드와 standard 모드 비교">
+<defs>
+<marker id="k2ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-ok"/></marker>
+<marker id="k2no" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-no"/></marker>
+</defs>
+<text x="20" y="34" font-size="16" font-weight="700" class="l-ko">strict 모드 (테스트 1)</text>
+<text x="20" y="34" font-size="16" font-weight="700" class="l-en">Strict mode (test 1)</text>
+<rect x="20" y="50" width="200" height="80" rx="8" class="pod-ok"/>
+<text x="36" y="80" font-size="14" font-weight="700">with-sg Pod</text>
+<text x="36" y="104" font-size="13" class="l-ko">branch ENI, 출발지 Pod IP</text>
+<text x="36" y="104" font-size="13" class="l-en">branch ENI, source = Pod IP</text>
+<path d="M220 90 L560 90" class="arrow-ok" marker-end="url(#k2ok)"/>
+<text x="390" y="80" font-size="13" text-anchor="middle" class="l-ko">TGW (판정 기준: sg-pod)</text>
+<text x="390" y="80" font-size="13" text-anchor="middle" class="l-en">TGW (judged by sg-pod)</text>
+<rect x="562" y="50" width="380" height="80" rx="8" class="rule"/>
+<text x="578" y="80" font-size="14" font-weight="700">sg-db: 8080 ← sg-pod</text>
+<text x="578" y="106" font-size="13" class="t-ok l-ko">허용. Pod 단위 판정</text>
+<text x="578" y="106" font-size="13" class="t-ok l-en">Allowed. Judged per Pod</text>
+
+<text x="20" y="184" font-size="16" font-weight="700" class="l-ko">standard 모드 + EXTERNALSNAT=false (테스트 4)</text>
+<text x="20" y="184" font-size="16" font-weight="700" class="l-en">Standard mode + EXTERNALSNAT=false (test 4)</text>
+<rect x="20" y="200" width="200" height="80" rx="8" class="node"/>
+<text x="36" y="230" font-size="14" font-weight="700" class="l-ko">노드 eth0로 SNAT</text>
+<text x="36" y="230" font-size="14" font-weight="700" class="l-en">SNAT to node eth0</text>
+<text x="36" y="254" font-size="13" class="l-ko">출발지 노드 IP</text>
+<text x="36" y="254" font-size="13" class="l-en">source = node IP</text>
+<path d="M220 240 L560 240" class="arrow-no" marker-end="url(#k2no)"/>
+<text x="390" y="230" font-size="13" text-anchor="middle" class="l-ko">TGW (판정 기준: 노드 SG)</text>
+<text x="390" y="230" font-size="13" text-anchor="middle" class="l-en">TGW (judged by node SG)</text>
+<rect x="562" y="200" width="380" height="80" rx="8" class="rule"/>
+<text x="578" y="228" font-size="13" class="t-no l-ko">4a. sg-pod 규칙만 있으면 차단</text>
+<text x="578" y="228" font-size="13" class="t-no l-en">4a. Blocked with the sg-pod rule only</text>
+<text x="578" y="254" font-size="13" class="t-ok l-ko">4b. 노드 SG 규칙을 넣으면 노드의 Pod 모두 허용</text>
+<text x="578" y="254" font-size="13" class="t-ok l-en">4b. With a node SG rule, every Pod on the node passes</text>
+</svg>
+</figure>
+<p class="cap"><b>그림 2.</b> 모드에 따라 대상 보안 그룹이 보는 출발지가 달라집니다.</p>
+<div class="snippet"><div class="snippet-bar"><span>text</span><button type="button" class="copy"><span class="i">복사</span><span class="done">복사됨</span></button></div><pre><code>aws-node env: POD_SECURITY_GROUP_ENFORCING_MODE=standard  AWS_VPC_K8S_CNI_EXTERNALSNAT=false
+06:30:20 4a  sg-db allows sg-pod only     with-sg FAIL (timeout)
+06:30:43 4b  sg-db also allows node SG    with-sg OK (HTTP 200)  no-sg OK (HTTP 200)
+
+srcaddr      dstaddr     dstport  action
+10.50.1.9    10.60.1.15  8080     REJECT   # 4a
+10.50.1.9    10.60.1.15  8080     ACCEPT   # 4b with-sg
+10.50.1.9    10.60.1.15  8080     ACCEPT   # 4b no-sg</code></pre></div>
+<p>4b에서 노드 보안 그룹 참조는 정상으로 동작했습니다. 노드의 기본 ENI는 일반 ENI라서 TGW 문서가 설명하는 범위 안에 있습니다. 다만 판정이 노드 단위가 되어, 같은 노드에 있는 다른 Pod와 hostNetwork를 쓰는 DaemonSet도 함께 허용됩니다. 이 구성에서 대상 접근을 특정 워크로드로 좁히려면 그 워크로드만 올라가는 노드 그룹을 따로 두고 그 노드에만 붙는 보안 그룹을 참조해야 합니다.</p>
+</div></section>
+
+<section class="sec" id="ko-s7"><header class="sec-head"><p class="eyebrow">06</p><h2>적용할 조건과 적용 전에 확인할 항목</h2></header><div class="prose">
+<p>TGW로 연결된 다른 VPC의 대상(데이터베이스 등)을 Pod 단위로 허용하려면 다음 조건을 모두 만족해야 합니다.</p>
+<ul>
+<li><b>TGW와 양쪽 attachment</b>에서 보안 그룹 참조가 켜져 있어야 합니다. TGW 수준의 기본값은 꺼짐이고, 이 기능이 나오기 전에 만든 TGW도 꺼져 있습니다(<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-for-aws-transit-gateway/" target="_blank" rel="noopener">발표 블로그</a>). 한쪽만 꺼져 있어도 테스트 3처럼 보안 그룹 참조에만 의존하는 트래픽은 막힙니다. 기존 CIDR 규칙을 보안 그룹 참조로 바꿀 때는 CIDR 규칙을 남겨 둔 채로 먼저 확인하는 편이 안전합니다.</li>
+<li><b>인바운드 규칙에만</b> 씁니다. Pod 보안 그룹의 아웃바운드는 상대 VPC CIDR이나 prefix list로 적어야 합니다.</li>
+<li><b>Pod IP 그대로</b> 대상에 도착해야 합니다. 이번에 확인한 조합은 strict 모드 + <code>EXTERNALSNAT=true</code>입니다. 대상 ENI에 대한 Flow Logs에서 <code>srcaddr</code>가 Pod IP인지 먼저 확인합니다.</li>
+<li><b>경로에 검사 장비가 없어야</b> 합니다. TGW 문서는 검사용 VPC의 Gateway Load Balancer나 Network Firewall을 거치면 보안 그룹 참조가 동작하지 않는다고 설명합니다. AWS 블로그는 VPC 안에서 더 구체적인 라우팅으로 서브넷 사이 트래픽을 Gateway Load Balancer나 Network Firewall로 검사하면 보안 그룹 참조를 쓸 수 없다고 설명합니다(<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/automated-vpc-prefix-list-population-for-cross-region-and-in-region-security-group-referencing/" target="_blank" rel="noopener">prefix list 블로그</a>). Cloud WAN 발표 블로그도 Network Firewall이나 서드파티 장비가 트래픽을 검사하면 동작하지 않는다고 설명합니다(<a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-and-enhanced-dns-support-for-aws-cloud-wan/" target="_blank" rel="noopener">Cloud WAN 블로그</a>). 그런 경로는 CIDR이나 prefix list로 허용합니다.</li>
+<li><b>같은 TGW</b>에 두 VPC가 붙어 있어야 합니다. TGW 피어링을 거치는 경로와 PrivateLink 엔드포인트는 지원하지 않습니다.</li>
+</ul>
+<p>TGW와 VPC 라우팅, 네트워크 ACL은 양방향으로 따로 열어야 합니다. 보안 그룹 참조는 보안 그룹의 허용 여부만 정합니다.</p>
+</div></section>
+
+<section class="sec" id="ko-s8"><header class="sec-head"><p class="eyebrow">07</p><h2>테스트하지 않은 구성</h2></header><div class="prose">
+<p>이번 테스트는 한 계정, 한 리전, 노드 1대, 대상 1대로 진행했습니다. 다음 구성은 확인하지 않았습니다.</p>
+<ul>
+<li>경로에 Network Firewall이나 Gateway Load Balancer가 있는 경우. 문서와 블로그 내용을 재현하지 않았습니다.</li>
+<li>VPC A와 B가 서로 다른 계정에 있는 경우</li>
+<li>같은 리전의 VPC 피어링에서 branch ENI 보안 그룹을 참조하는 경우</li>
+<li>노드와 대상이 여러 가용 영역에 나뉘어 있는 경우</li>
+<li>strict 모드 + <code>EXTERNALSNAT=false</code>. EKS 사용 설명서에 따르면 strict 모드에서는 보안 그룹이 붙은 Pod의 SNAT가 꺼지므로 테스트 1과 같은 결과를 예상하지만, 실행하지 않았습니다.</li>
+<li>standard 모드 + <code>EXTERNALSNAT=true</code></li>
+<li>IPv6 클러스터, Fargate, Karpenter가 띄운 노드</li>
+<li>보안 그룹 참조 설정을 바꾼 뒤 실제로 반영되기까지 걸리는 시간. 테스트 3은 attachment가 <code>available</code>이 된 뒤 60초를 기다렸기 때문에 반영 시간을 측정하지 않았습니다.</li>
+</ul>
+</div></section>
+
+<section class="sec" id="ko-code"><header class="sec-head"><h2>테스트 코드</h2></header><div class="prose">
+<p>이 결과를 만든 Terraform 코드와 스크립트는 블로그 저장소의 <a href="https://github.com/blackdog0403/blackdog0403.github.io/tree/master/demos/tgw-sg-referencing-pods" target="_blank" rel="noopener">demos/tgw-sg-referencing-pods</a>에 있습니다. EKS 컨트롤 플레인, NAT 게이트웨이, TGW attachment, 인스턴스 2대처럼 비용이 드는 리소스를 만들므로 테스트가 끝나면 <code>terraform destroy</code>로 지우세요.</p>
+</div></section>
+
+<section class="sec" id="ko-refs"><header class="sec-head"><h2>참고 자료</h2></header><div class="prose">
+<ol class="refs">
+<li><a href="https://docs.aws.amazon.com/vpc/latest/tgw/tgw-vpc-attachments.html#vpc-attachment-security" target="_blank" rel="noopener">Amazon VPC attachments in AWS Transit Gateway: Security group referencing</a></li>
+<li><a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-for-aws-transit-gateway/" target="_blank" rel="noopener">Introducing security group referencing for AWS Transit Gateway</a></li>
+<li><a href="https://aws.amazon.com/blogs/networking-and-content-delivery/automated-vpc-prefix-list-population-for-cross-region-and-in-region-security-group-referencing/" target="_blank" rel="noopener">Automated VPC prefix list population for cross-Region and in-Region security group referencing</a></li>
+<li><a href="https://aws.amazon.com/blogs/networking-and-content-delivery/introducing-security-group-referencing-and-enhanced-dns-support-for-aws-cloud-wan/" target="_blank" rel="noopener">Introducing security group referencing and enhanced DNS support for AWS Cloud WAN</a></li>
+<li><a href="https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-security-groups.html" target="_blank" rel="noopener">Update your security groups to reference peer security groups</a></li>
+<li><a href="https://docs.aws.amazon.com/eks/latest/userguide/security-groups-for-pods.html" target="_blank" rel="noopener">Amazon EKS: Assign security groups to individual Pods</a></li>
+<li><a href="https://github.com/aws/amazon-vpc-cni-k8s#pod_security_group_enforcing_mode-v1110" target="_blank" rel="noopener">Amazon VPC CNI: POD_SECURITY_GROUP_ENFORCING_MODE</a></li>
+</ol>
+</div></section>
+</div>
+
+<footer><span class="l-ko">이 글의 내용은 개인 테스트 결과이며 AWS의 공식 입장이 아닙니다.</span><span class="l-en">This post describes my own test results and is not an official AWS statement.</span></footer>
+</div>
+<script>
+(function(){
+  var root=document.documentElement;
+  function put(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function mark(id,v){var s=document.getElementById(id);if(!s)return;s.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-v')===v?'true':'false')})}
+  function curTheme(){var t=root.getAttribute('data-theme');if(t)return t;return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
+  mark('langSeg',root.getAttribute('data-lang'));mark('themeSeg',curTheme());
+  document.getElementById('langSeg').addEventListener('click',function(e){var v=e.target.closest('button');if(!v)return;v=v.getAttribute('data-v');root.setAttribute('data-lang',v);root.setAttribute('lang',v);mark('langSeg',v);put('blog-lang',v);});
+  document.getElementById('themeSeg').addEventListener('click',function(e){var v=e.target.closest('button');if(!v)return;v=v.getAttribute('data-v');root.setAttribute('data-theme',v);mark('themeSeg',v);put('blog-theme',v)});
+  document.querySelectorAll('.snippet .copy').forEach(function(b){b.addEventListener('click',function(){var c=b.closest('.snippet').querySelector('code').innerText;navigator.clipboard.writeText(c).then(function(){b.classList.add('copied');setTimeout(function(){b.classList.remove('copied')},1500)})})});
+})();
+</script>
+</body>
+</html>

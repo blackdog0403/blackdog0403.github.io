@@ -162,6 +162,12 @@ exclude:
   - tmp
   - /docs # ignore Minimal Mistakes /docs
   - /test # ignore Minimal Mistakes /test
+  - demos/ # test code for posts, browsed on GitHub, not published
+  - vendor/
+  - .bundle/
+  - .jekyll-cache
+  - Gemfile*
+  - README*
 keep_files:
   - .git
   - .svn
@@ -208,15 +214,9 @@ plugins:
   - jekyll-sitemap
   - jekyll-gist
   - jekyll-feed
-  - jemoji
-
-# mimic GitHub Pages with --safe
-whitelist:
-  - jekyll-paginate
-  - jekyll-sitemap
-  - jekyll-gist
-  - jekyll-feed
-  - jemoji
+  - jekyll-include-cache
+  - jekyll-optional-front-matter
+  - jekyll-default-layout
 
 
 # Archives
@@ -270,3 +270,8 @@ defaults:
       share: true
       related: true
       # toc: true
+  # Report HTML is embedded by its post; keep only the post in the sitemap.
+  - scope:
+      path: "assets/reports"
+    values:
+      sitemap: false
