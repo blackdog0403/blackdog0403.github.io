@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 cd "$(dirname "$0")"
 # Credentials come from the environment: --profile is passed only when AWS_PROFILE is set.
-REGION=${AWS_REGION:-ap-northeast-2}
+REGION=${AWS_REGION:-${AWS_DEFAULT_REGION:-ap-northeast-2}}
 PORT=${PORT:-8445}
 CLUSTER=$(terraform output -raw cluster_name)
 

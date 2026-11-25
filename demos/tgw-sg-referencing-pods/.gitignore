@@ -3,6 +3,5 @@
 *.tfstate.*
 *.tfplan
 tfplan*
-.terraform.lock.hcl
 results/
 *.log

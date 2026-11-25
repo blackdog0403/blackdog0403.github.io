@@ -6,7 +6,7 @@
 set -Eeuo pipefail
 cd "$(dirname "$0")"
 # Credentials come from the environment: --profile is passed only when AWS_PROFILE is set.
-REGION=${AWS_REGION:-ap-northeast-2}
+REGION=${AWS_REGION:-${AWS_DEFAULT_REGION:-ap-northeast-2}}
 K="kubectl --context sgref-tunnel"
 NS=sgref
 out() { terraform output -raw "$1"; }
@@ -34,7 +34,14 @@ $K -n $NS get pod -o wide
 probe() {
   local code
   code=$($K -n $NS exec "$1" -- curl -s -m 5 -o /dev/null -w '%{http_code}' "http://$TARGET:8080/" || true)
-  [[ "$code" == 200 ]] && echo "$2: OK (HTTP 200)" || echo "$2: FAIL (code '${code:-timeout}')"
+  # curl -w prints 000 when it got no HTTP response (here: the -m 5 timeout);
+  # an empty code means kubectl exec itself failed.
+  case "$code" in
+    200) echo "$2: OK (HTTP 200)" ;;
+    000) echo "$2: FAIL (timeout)" ;;
+    "")  echo "$2: FAIL (exec error)" ;;
+    *)   echo "$2: FAIL (HTTP $code)" ;;
+  esac
 }
 
 echo "== $(date -u +%T) 4a: sg-db allows sg-pod only"

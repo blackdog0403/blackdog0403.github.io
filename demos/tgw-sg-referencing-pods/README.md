@@ -52,8 +52,8 @@ everything when you are done.
 
 Credentials come from the standard AWS environment. Set `AWS_PROFILE` (or use
 any other method the AWS CLI and Terraform provider support). The scripts use
-`AWS_REGION`, default `ap-northeast-2`; Terraform uses the `region` variable,
-same default. If you change the Region, set both, for example
+`AWS_REGION`, then `AWS_DEFAULT_REGION`, default `ap-northeast-2`; Terraform
+uses the `region` variable, same default. If you change the Region, set both, for example
 `export AWS_REGION=... TF_VAR_region=$AWS_REGION`. The configuration uses
 Availability Zones `a` and `c` of the Region.
 
@@ -78,6 +78,19 @@ terraform apply -var fallback_mode=true
 `tunnel.sh` writes a kubeconfig context named `sgref-tunnel` that points to
 `https://127.0.0.1:8445` (set `PORT` to change it). `run-test4.sh` adds a
 temporary `sg-db` rule for the node security group and removes it on exit.
+`terraform init` installs the AWS provider version pinned in `.terraform.lock.hcl`.
+
+## Troubleshooting
+
+`run-tests.sh` turns security group referencing off on attachment A for test 3
+and turns it back on when it exits, even on an error or Ctrl-C. If the script is
+killed before it can do that (for example with `kill -9`), turn it back on by hand:
+
+```bash
+aws ec2 modify-transit-gateway-vpc-attachment --region "${AWS_REGION:-ap-northeast-2}" \
+  --transit-gateway-attachment-id "$(terraform output -raw attachment_a_id)" \
+  --options SecurityGroupReferencingSupport=enable
+```
 
 ## Cleanup
 

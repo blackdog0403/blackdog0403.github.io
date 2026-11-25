@@ -8,7 +8,7 @@
 set -Eeuo pipefail
 cd "$(dirname "$0")"
 # Credentials come from the environment: --profile is passed only when AWS_PROFILE is set.
-REGION=${AWS_REGION:-ap-northeast-2}
+REGION=${AWS_REGION:-${AWS_DEFAULT_REGION:-ap-northeast-2}}
 K="kubectl --context sgref-tunnel"
 NS=sgref
 out() { terraform output -raw "$1"; }
@@ -68,7 +68,14 @@ echo "with-sg pod-eni: $($K -n $NS get pod "$WITH" -o jsonpath='{.metadata.annot
 probe() { # pod label
   local code
   code=$($K -n $NS exec "$1" -- curl -s -m 5 -o /dev/null -w '%{http_code}' "http://$TARGET:8080/" || true)
-  [[ "$code" == 200 ]] && echo "$2: OK (HTTP 200)" || echo "$2: FAIL (code '${code:-timeout}')"
+  # curl -w prints 000 when it got no HTTP response (here: the -m 5 timeout);
+  # an empty code means kubectl exec itself failed.
+  case "$code" in
+    200) echo "$2: OK (HTTP 200)" ;;
+    000) echo "$2: FAIL (timeout)" ;;
+    "")  echo "$2: FAIL (exec error)" ;;
+    *)   echo "$2: FAIL (HTTP $code)" ;;
+  esac
 }
 
 att_option() {
@@ -87,11 +94,16 @@ echo "== $(date -u +%T) test 1 (sg-pod, branch ENI)"; probe "$WITH" "test 1"
 echo "== $(date -u +%T) test 2 (no SGPP, node SG)";  probe "$NOSG" "test 2"
 
 echo "== test 3 (SG referencing disabled on attachment A)"
+# If the script stops before the restore below, turn referencing back on anyway.
+trap 'echo "== restoring SG referencing on attachment A"; set_att enable' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 set_att disable
 sleep 60
 probe "$WITH" "test 3"
 echo "== restore"
 set_att enable
+trap - EXIT INT TERM
 sleep 60
 probe "$WITH" "test 1 after re-enable"
 
